@@ -70,3 +70,10 @@ contains(MACHINE_NAME, "tuna") {
     CONFIG_BUILD += opengl
     LIBS += -lqpalm
 }
+contains(MACHINE_NAME, "slate") {
+    DEFINES += MACHINE_SLATE MACHINE_X86_TABLET
+    TARGET_TYPE = TARGET_DEVICE
+    CONFIG_BUILD += webosdevice nyx
+    CONFIG_BUILD += opengl
+    LIBS += -lqpalm
+}
