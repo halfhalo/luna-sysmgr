@@ -75,5 +75,5 @@ contains(MACHINE_NAME, "slate") {
     TARGET_TYPE = TARGET_DEVICE
     CONFIG_BUILD += webosdevice nyx
     CONFIG_BUILD += opengl
-    LIBS += -lqpalm
+    LIBS += -lqpalm -lserviceinstaller
 }
