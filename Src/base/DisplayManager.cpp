@@ -3596,7 +3596,7 @@ void DisplayManager::changeVsyncControl(bool enable)
 	if (s_forceVsyncDisable)
 		return;
 
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL)
+#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL) && defined(HAVE_VSYNC)
 	QGLContext* gc = (QGLContext*) QGLContext::currentContext();
 	if (gc) {
 		setEglSwapInterval(enable ? 1 : 0);
