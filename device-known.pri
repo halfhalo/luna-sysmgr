@@ -76,3 +76,9 @@ contains(MACHINE_NAME, "slate") {
     CONFIG_BUILD += webosdevice nyx
     LIBS += -lqpalm -lserviceinstaller
 }
+contains(MACHINE_NAME, "rock") {
+    DEFINES += MACHINE_SLATE MACHINE_X86_TABLET
+    TARGET_TYPE = TARGET_DEVICE
+    CONFIG_BUILD += webosdevice nyx
+    LIBS += -lqpalm -lserviceinstaller
+}
