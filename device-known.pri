@@ -82,3 +82,9 @@ contains(MACHINE_NAME, "rock") {
     CONFIG_BUILD += webosdevice nyx
     LIBS += -lqpalm -lserviceinstaller
 }
+contains(MACHINE_NAME, "cedartrail") {
+    DEFINES += MACHINE_SLATE MACHINE_X86_TABLET
+    TARGET_TYPE = TARGET_DEVICE
+    CONFIG_BUILD += webosdevice nyx opengl
+    LIBS += -lqpalm -lserviceinstaller
+}
