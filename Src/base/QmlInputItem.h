@@ -22,8 +22,9 @@
 #ifndef QMLINPUTITEM_H
 #define QMLINPUTITEM_H
 
-#include <QDeclarativeItem>
+#include <qglobal.h>
 #include "InputClient.h"
+#include <QDeclarativeItem>
 
 class InputItem : public QDeclarativeItem
                 , public InputClient
@@ -31,7 +32,7 @@ class InputItem : public QDeclarativeItem
     Q_OBJECT
 
 public:
-	InputItem(QDeclarativeItem* parent = 0) : QDeclarativeItem(parent) {}
+    InputItem(QDeclarativeItem* parent = 0) : QDeclarativeItem(parent) {}
 };
 
 QML_DECLARE_TYPE(InputItem)

@@ -52,12 +52,6 @@ public:
 
 	bool	init			(GMainLoop* mainLoop);
 	
-	//FIXME-qtwebkit
-	void	dbDumpStarted	(const Palm::DbBackupStatus& status, void* userData);
-	void	dbDumpStopped	(const Palm::DbBackupStatus& status, void* userData);
-	void	dbRestoreStarted(const Palm::DbBackupStatus& status, void* userData);
-	void	dbRestoreStopped(const Palm::DbBackupStatus& status, void* userData);
-
 	static BackupManager*	instance();
 
 private:

@@ -31,7 +31,6 @@
 #include "IpcServer.h"
 #include "Localization.h"
 #include "WindowServer.h"
-#include "WebAppManager.h"
 #include "WebAppMgrProxy.h"
 #include "MemoryMonitor.h"
 #include "Settings.h"
@@ -42,6 +41,7 @@
 #include "Security.h"
 #include "EASPolicyManager.h"
 #include "Logging.h"
+#include "BackupManager.h"
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -403,6 +403,7 @@ static void outerCrashHandler(int sig, siginfo_t *info, void *data)
     crashLogFD = -1;
 }
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 void qtMsgHandler(QtMsgType type, const char *str) {
     switch(type)
     {
@@ -423,6 +424,28 @@ void qtMsgHandler(QtMsgType type, const char *str) {
 	    break;
     }
 }
+#else
+void qtMsgHandler(QtMsgType type, const QMessageLogContext&, const QString& str) {
+    switch(type)
+    {
+    case QtDebugMsg:
+        g_debug("QDebug: %s", qPrintable(str));
+        break;
+    case QtWarningMsg:
+        g_warning("QWarning: %s", qPrintable(str));
+        break;
+    case QtCriticalMsg:
+        g_critical("QCritical: %s", qPrintable(str));
+        break;
+    case QtFatalMsg:
+        g_error("QFatal: %s", qPrintable(str));
+        break;
+    default:
+        g_message("QMessage: %s", qPrintable(str));
+        break;
+    }
+}
+#endif
 
 static void parseCommandlineOptions(int argc, char** argv)
 {
@@ -495,45 +518,6 @@ static void generateGoodBacktraceTerminateHandler()
 	exit(-1);
 }
 
-static int RunWebAppManagerTask(void* data)
-{
-    // Install the handler for signals that we want to trap:
-    // Note: We install the handlers after we initialize the setting because
-    // we may do something different depending on the settings values.
-    installOuterCrashHandler(SIGILL);
-    installOuterCrashHandler(SIGSEGV);
-    installOuterCrashHandler(SIGTERM);
-
-	::prctl(PR_SET_NAME, (unsigned long) "WebAppMgr", 0, 0, 0);
-	::prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-
-
-	char msg = 0x00;
-	int len = 0;
-
-	// block here until the IpcServer in the main process is ready
-	while (len != 1 || msg != msgOkToContinue)
-		len = ::read(IpcServerPipeFd, &msg, 1);
-
-	::close(IpcServerPipeFd);
-	IpcServerPipeFd = -1;
-
-	const HostInfo* info = &(HostBase::instance()->getInfo());
-	WebAppManager::instance()->setHostInfo(info);
-
-	initMallocStatsCb(WebAppManager::instance()->mainLoop(), s_mallocStatsInterval);
-
-	logInit();
-
-	// Start the Browser App Launcher
-#ifdef NO_WEBKIT_INIT
-	WindowServer::instance()->bootupFinished();
-#else
-	WebAppManager::instance()->run(); // Sync execution of the task
-#endif
-
-	return 0;
-}
 
 
 int appArgc = 0;
@@ -562,30 +546,6 @@ static int RunBootupAnimationTask(void* data)
 	return 0;
 }
 
-pid_t spawnWebKitProcess()
-{
-	int fd[2];
-	::pipe(fd);
-
-	pid_t pid = ::fork();
-	if (pid < 0)
-		return pid;
-
-
-	if (pid == 0) {
-		// child closed the WRITE end of the pipe
-		::close(fd[1]);
-		IpcServerPipeFd = fd[0];
-		RunWebAppManagerTask((void*) 0);
-		exit(-1);
-	} else {
-		// parent closes the READ end of the pipe
-		::close(fd[0]);
-		WebAppMgrPipeFd = fd[1];
-	}
-
-	return pid;
-}
 
 pid_t spawnBootupAnimationProcess()
 {
@@ -686,11 +646,11 @@ int main( int argc, char** argv)
 	}
 #endif
 
-#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL)
+#if defined(TARGET_DEVICE) && defined(HAVE_OPENGL) && defined(HAVE_PALM_QPA)
 	if (settings->forceSoftwareRendering)
-		::setenv("QT_QPA_PLATFORM", "palm-soft", 1);
+		::setenv("QT_QPA_PLATFORM", "palm-soft", 0);
 	else
-		::setenv("QT_QPA_PLATFORM", "palm", 1);
+		::setenv("QT_QPA_PLATFORM", "palm", 0);
 #else
     // Do not override the value if the variable exists
     ::setenv("QT_QPA_PLATFORM", "palm", 0);
@@ -703,16 +663,8 @@ int main( int argc, char** argv)
 #endif
 
 
-	pid_t webKitPid= spawnWebKitProcess();
-	if(webKitPid < 0) { // failed to start the WebKit process
-		return -1;
-	}
-
 	// Tie LunaSysMgr to Processor 0
 	setCpuAffinity(getpid(), 1);
-
-	// Tie WebAppMgr to Processor 1
-	setCpuAffinity(webKitPid, 0);
 
 	// Safe to create logging threads now
 	logInit();
@@ -720,18 +672,17 @@ int main( int argc, char** argv)
 	// Initialize Ipc Server
 	(void) IpcServer::instance();
 
-	// Ipc Server is ready, so signal the WebAppMgr process (via pipe) to go ahead and connect
-	::write(WebAppMgrPipeFd, &msgOkToContinue, 1);
-	::close(WebAppMgrPipeFd);
-	WebAppMgrPipeFd = -1;
-
-
 #if !defined(TARGET_DESKTOP)
 	// Set "nice" property
 	setpriority(PRIO_PROCESS,getpid(),-1);
 #endif
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	qInstallMsgHandler(qtMsgHandler);
+#else
+    qInstallMessageHandler(qtMsgHandler);
+#endif
+
 	QApplication app(argc, argv);
 	QApplication::setStartDragDistance(settings->tapRadius);
 	QApplication::setDoubleClickInterval (Settings::LunaSettings()->tapDoubleClickDuration);
@@ -752,6 +703,9 @@ int main( int argc, char** argv)
 
 	// Initialize Security handler
 	(void) Security::instance();
+
+    // Initialize BackupManager
+    BackupManager::instance()->init(HostBase::instance()->mainLoop());
 
 	// Initialize the System Service
 	SystemService::instance()->init();

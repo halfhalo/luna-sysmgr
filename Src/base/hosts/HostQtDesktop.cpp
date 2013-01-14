@@ -36,6 +36,13 @@
 #include <QGraphicsView>
 
 #include <SysMgrDefs.h>
+#include <SysMgrDeviceKeydefs.h>
+
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+    #define KEYS Qt
+#else
+    #define KEYS
+#endif
 
 #include "CustomEvents.h"
 
@@ -139,9 +146,9 @@ public:
 		if ((velocity.y() * velocity.y()) > (velocity.x() * velocity.x())) {
 
 			if (velocity.y() > 0)
-				postGesture(Qt::Key_CoreNavi_SwipeDown);
+                postGesture(KEYS::Key_CoreNavi_SwipeDown);
 			else
-				postGesture(Qt::Key_CoreNavi_Launcher);
+                postGesture(KEYS::Key_CoreNavi_Launcher);
 
 			m_seenGesture = true;
 		}
@@ -192,18 +199,18 @@ public:
 				// Horizontal movement
 				if (deltaX > 0) {
 					if (deltaX > width()/2) {
-						postGesture(Qt::Key_CoreNavi_Next);
+                        postGesture(KEYS::Key_CoreNavi_Next);
 					}
 					else {
-						postGesture(Qt::Key_CoreNavi_Menu);
+                        postGesture(KEYS::Key_CoreNavi_Menu);
 					}
 				}
 				else {
 					if (-deltaX > width()/2) {
-						postGesture(Qt::Key_CoreNavi_Previous);
+                        postGesture(KEYS::Key_CoreNavi_Previous);
 					}
 					else {
-						postGesture(Qt::Key_CoreNavi_Back);
+                        postGesture(KEYS::Key_CoreNavi_Back);
 					}
 				}
 			}
@@ -214,7 +221,11 @@ public:
 		m_seenGesture = false;
 	}
 
-	void postGesture(Qt::Key key) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+    void postGesture(Qt::Key key) {
+#else
+    void postGesture(qint32 key) {
+#endif
 		QWidget* window = QApplication::focusWidget();
 		if (window) {
 			QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, key,
@@ -237,14 +248,14 @@ public:
 private Q_SLOTS:
 
 	void slotHomeButtonClicked() {
-		postGesture(Qt::Key_CoreNavi_Home);
+        postGesture(KEYS::Key_CoreNavi_Home);
 	}
 
 	void slotQuickLaunchGesture() {
 		m_quickLaunch = true;
 		m_seenGesture = true;
 		viewport(m_mainView)->grabMouse();
-		postGesture(Qt::Key_CoreNavi_QuickLaunch);
+        postGesture(KEYS::Key_CoreNavi_QuickLaunch);
 		postMouseUpdate(m_currentMousePos);
 	}
 
@@ -321,28 +332,33 @@ protected:
 			case Qt::Key_Home:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, Qt::Key_CoreNavi_Home, 0));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, KEYS::Key_CoreNavi_Home, 0));
 				}
 				handled = true;
 				break;
 			case Qt::Key_Escape:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, Qt::Key_CoreNavi_Back, 0));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, KEYS::Key_CoreNavi_Back, 0));
 				}
 				handled = true;
 				break;
 			case Qt::Key_End:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, Qt::Key_CoreNavi_Launcher, 0));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, KEYS::Key_CoreNavi_Launcher, 0));
 				}
 				handled = true;
 				break;
 			case Qt::Key_Pause:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, Qt::Key_Power, keyEvent->modifiers()));
+// QT5_TODO: Are these equivalent?
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, KEYS::Key_Power, keyEvent->modifiers()));
+#else
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyPress, KEYS::Key_HardPower, keyEvent->modifiers()));
+#endif
 				}
 				handled = true;
 				break;
@@ -386,35 +402,40 @@ protected:
 			case Qt::Key_Home:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, Qt::Key_CoreNavi_Home, 0));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, KEYS::Key_CoreNavi_Home, 0));
 				}
 				handled = true;
 				break;
 			case Qt::Key_Escape:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, Qt::Key_CoreNavi_Back, 0));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, KEYS::Key_CoreNavi_Back, 0));
 				}
 				handled = true;
 				break;
 			case Qt::Key_End:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, Qt::Key_CoreNavi_Launcher, 0));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, KEYS::Key_CoreNavi_Launcher, 0));
 				}
 				handled = true;
 				break;
 			case Qt::Key_Pause:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, Qt::Key_Power, keyEvent->modifiers()));
+// QT5_TODO: Are these equivalent?
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, KEYS::Key_Power, keyEvent->modifiers()));
+#else
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, KEYS::Key_HardPower, keyEvent->modifiers()));
+#endif
 				}
 				handled = true;
 				break;
 			case Qt::Key_F2:
 				window = QApplication::focusWidget();
 				if (window) {
-					QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, Qt::Key_Keyboard, keyEvent->modifiers()));
+                    QApplication::postEvent(window, new QKeyEvent(QEvent::KeyRelease, KEYS::Key_Keyboard, keyEvent->modifiers()));
 				}
 				handled = true;
 				break;

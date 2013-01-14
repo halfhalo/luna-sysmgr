@@ -76,14 +76,14 @@
 
 
 
-#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+#if defined(HAS_PALM_QPA) && defined(TARGET_DEVICE)
 // From the Palm QPA
 extern "C" void setTransform(QTransform*);
 extern "C" InputControl* getTouchpanel(void);
 extern "C" void setBluetoothCallback(void (*fun)(bool));
 #endif
 
-#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+#if defined(HAS_PALM_QPA) && defined(TARGET_DEVICE)
 static void bluetoothCallback(bool enable)
 {
     HostBase::instance()->setBluetoothKeyboardActive(enable);
@@ -112,12 +112,18 @@ HostArm::HostArm() :
 	, m_nyxLedControlKeypadAndDisplay(0)
     , m_bluetoothKeyboardActive(false)
     , m_OrientationSensor(0)
+#if defined(USE_KEY_FILTER)
+    , m_keyFilter(0)
+#endif // USE_KEY_FILTER
+#if defined(USE_MOUSE_FILTER)
+    , m_mouseFilter(0)
+#endif // USE_MOUSE_FILTER
 {
 #if defined(HAS_HIDLIB)
 	m_hwRev = HidGetHardwareRevision();
 	m_hwPlatform = HidGetHardwarePlatform();
 #endif
-#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+#if defined(HAS_PALM_QPA) && defined(TARGET_DEVICE)
 	setBluetoothCallback(&bluetoothCallback);
 #endif
 }
@@ -128,6 +134,13 @@ HostArm::~HostArm()
 	shutdownInput();
 
 	nyx_deinit();
+
+#if defined(USE_KEY_FILTER)
+    delete m_keyFilter;
+#endif
+#if defined(USE_MOUSE_FILTER)
+    delete m_mouseFilter;
+#endif
 }
 
 void HostArm::init(int w, int h)
@@ -221,7 +234,7 @@ void HostArm::init(int w, int h)
 	m_fb1NumBuffers = fixinfo.smem_len / (rowBytes * varinfo.yres);
 
 	printf("Linux Fb0: Num Buffers: %d, Fb1: Num Buffers: %d\n", m_fb0NumBuffers, m_fb1NumBuffers);
-#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+#if defined(HAS_PALM_QPA) && defined(TARGET_DEVICE)
 // From the Palm QPA
 	setTransform(&m_trans);
 #endif
@@ -503,6 +516,22 @@ void HostArm::setCentralWidget(QWidget* view)
 {
 	view->setWindowFlags(Qt::CustomizeWindowHint |
 						 Qt::WindowStaysOnTopHint);
+#if defined(USE_KEY_FILTER)
+    m_keyFilter = new HostArmQtKeyFilter;
+    qApp->installEventFilter(m_keyFilter);
+#endif // USE_KEY_FILTER
+
+#if defined(USE_MOUSE_FILTER)
+    m_mouseFilter = new HostArmQtMouseFilter;
+    QGraphicsView* gView = qobject_cast<QGraphicsView *>(view);
+    if(gView)
+    {
+        gView->viewport()->installEventFilter(m_mouseFilter);
+    } else {
+        view->installEventFilter(m_mouseFilter);
+    }
+#endif // USE_MOUSE_FILTER
+
 	QApplication::setActiveWindow(view);
 	view->show();    
 }
@@ -758,7 +787,9 @@ InputControl* HostArm::getInputControlALS()
     if (m_nyxInputControlALS)
         return m_nyxInputControlALS;
 
+#if defined(HAS_NYX)
     m_nyxInputControlALS = new NyxInputControl(NYX_DEVICE_SENSOR_ALS, "Default");
+#endif
     if (NULL == m_nyxInputControlALS)
         g_critical("Unable to obtain m_nyxInputControlALS");
 
@@ -769,8 +800,9 @@ InputControl* HostArm::getInputControlProximity()
 {
     if (m_nyxInputControlProx)
         return m_nyxInputControlProx;
-
+#if defined(HAS_NYX)
     m_nyxInputControlProx = new NyxInputControl(NYX_DEVICE_SENSOR_PROXIMITY, "Screen");
+#endif
     if (NULL == m_nyxInputControlProx)
         g_critical("Unable to obtain m_nyxInputControlProx");
 
@@ -781,7 +813,7 @@ InputControl* HostArm::getInputControlTouchpanel()
 {
     if (m_nyxInputControlTouchpanel)
         return m_nyxInputControlTouchpanel;
-#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+#if defined(HAS_PALM_QPA) && defined(TARGET_DEVICE)
     m_nyxInputControlTouchpanel = getTouchpanel();
 #endif
     if (!m_nyxInputControlTouchpanel)
@@ -794,7 +826,9 @@ InputControl* HostArm::getInputControlKeys()
     if (m_nyxInputControlKeys)
         return m_nyxInputControlKeys;
 
+#if defined(HAS_NYX)
     m_nyxInputControlKeys = new NyxInputControl(NYX_DEVICE_KEYS, "Main");
+#endif
     if (NULL == m_nyxInputControlKeys)
         g_critical("Unable to obtain m_nyxInputControlKeys");
 
@@ -806,7 +840,9 @@ InputControl* HostArm::getInputControlBluetoothInputDetect()
     if (m_nyxInputControlBluetoothInputDetect)
         return m_nyxInputControlBluetoothInputDetect;
 
+#if defined(HAS_NYX)
     m_nyxInputControlBluetoothInputDetect = new NyxInputControl(NYX_DEVICE_BLUETOOTH_INPUT_DETECT, "Main");
+#endif
     if (NULL == m_nyxInputControlBluetoothInputDetect)
         g_critical("Unable to obtain m_nyxInputControlBluetoothInputDetect");
 
@@ -817,11 +853,11 @@ LedControl* HostArm::getLedControlKeypadAndDisplay()
 {
     if (m_nyxLedControlKeypadAndDisplay)
         return m_nyxLedControlKeypadAndDisplay;
-
+#if defined(HAS_NYX)
     m_nyxLedControlKeypadAndDisplay = new NyxLedControl("Default");
+#endif
     if (NULL == m_nyxLedControlKeypadAndDisplay)
         g_critical("Unable to obtain m_nyxLedControlKeypadAndDisplay");
-
     return m_nyxLedControlKeypadAndDisplay;
 }
 

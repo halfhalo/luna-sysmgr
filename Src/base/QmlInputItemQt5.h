@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2011-2012 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -19,15 +19,23 @@
 
 
 
-#ifndef JSSYSOBJECTWRAPPER_H
-#define JSSYSOBJECTWRAPPER_H
+#ifndef QMLINPUTITEM_H
+#define QMLINPUTITEM_H
 
-#include "Common.h"
+#include <qglobal.h>
+#include "InputClient.h"
+#include <QQuickItem>
 
-#include "JsSysObject.h"
+class InputItem : public QQuickItem
+                , public InputClient
+{
+    Q_OBJECT
 
-class WebFrame;
+public:
+    InputItem(QQuickItem* parent = 0) : QQuickItem(parent) {}
 
-JsSysObject* acquireFrameJsSysObject(WebFrame* frame);
+};
 
-#endif /* JSSYSOBJECTWRAPPER_H */
+QML_DECLARE_TYPE(InputItem)
+
+#endif /* QMLINPUTITEM_H */

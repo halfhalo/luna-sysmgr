@@ -1296,6 +1296,7 @@ bool CardWindowManager::sceneEvent(QEvent* event)
 		if (g) {
 			QTapGesture* tap = static_cast<QTapGesture*>(g);
 			if (tap->state() == Qt::GestureFinished) {
+                m_penDown = true;
 				tapGestureEvent(tap);
 			}
 			return true;
@@ -1304,6 +1305,7 @@ bool CardWindowManager::sceneEvent(QEvent* event)
 		if (g) {
 			QTapAndHoldGesture* hold = static_cast<QTapAndHoldGesture*>(g);
 			if (hold->state() == Qt::GestureFinished) {
+                m_penDown = true;
 				tapAndHoldGestureEvent(hold);
 			}
 			return true;
@@ -1312,6 +1314,7 @@ bool CardWindowManager::sceneEvent(QEvent* event)
 		if (g) {
 			FlickGesture* flick = static_cast<FlickGesture*>(g);
 			if (flick->state() == Qt::GestureFinished) {
+                m_penDown = true;
 				flickGestureEvent(ge);
 			}
 			return true;
@@ -1802,10 +1805,18 @@ void CardWindowManager::handleMouseReleaseMinimized(QGraphicsSceneMouseEvent* ev
 		// Did we go too close to the top?
 		if (m_draggedWin) {
             QRectF pr = m_draggedWin->mapRectToParent(m_draggedWin->boundingRect());
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
             if ((!event->canceled()) && (pr.center().y() > boundingRect().bottom())) {
+#else
+            if ((event->isAccepted()) && (pr.center().y() > boundingRect().bottom())) {
+#endif
                 closeWindow(m_draggedWin, true);
             }
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
             else if ((!event->canceled()) && (pr.center().y() < boundingRect().top())) {
+#else
+            else if ((event->isAccepted()) && (pr.center().y() < boundingRect().top())) {
+#endif
 				closeWindow(m_draggedWin);
 			}
 			else {
@@ -1816,7 +1827,11 @@ void CardWindowManager::handleMouseReleaseMinimized(QGraphicsSceneMouseEvent* ev
 	}
 	else if (m_movement == MovementHLocked) {
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 		if(!event->canceled())
+#else
+        if(event->isAccepted())
+#endif
 			setActiveGroup(groupClosestToCenterHorizontally());
 		slideAllGroups();
 	}

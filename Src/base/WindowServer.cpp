@@ -59,7 +59,6 @@
 
 #include "BootupAnimation.h"
 #include "Logging.h"
-#include "Debug.h"
 #include "HapticsController.h"
 #include "HostBase.h"
 #include "MutexLocker.h"
@@ -108,6 +107,13 @@
 #include "TouchPlot.h"
 
 #include "WindowManagerBase.h"
+
+#include <SysMgrDeviceKeydefs.h>
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+    #define KEYS Qt
+#else
+    #define KEYS
+#endif
 
 static const char* kWindowSrvChnl = "WindowServer";
 static std::tr1::unordered_set<unsigned long> s_registeredWindows;
@@ -597,7 +603,12 @@ bool WindowServer::processSystemShortcut(QEvent* event)
 			symDown = keyEvent->type() == QEvent::KeyPress;
 			break;
 
-		case Qt::Key_Power: {
+// QT5_TODO: Are these equivalent?
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+        case KEYS::Key_Power: {
+#else
+        case KEYS::Key_HardPower: {
+#endif
 			powerKeyDown = keyEvent->type() == QEvent::KeyPress;
 			if (powerKeyDown) {
 				eatPowerUpKey = false;
@@ -623,7 +634,7 @@ bool WindowServer::processSystemShortcut(QEvent* event)
 
 			return false;
 		}
-		case Qt::Key_CoreNavi_Home:
+        case KEYS::Key_CoreNavi_Home:
 			homeKeyDown = keyEvent->type() == QEvent::KeyPress;
 			if (homeKeyDown) {
 				eatHomeUpKey = false;
@@ -918,7 +929,12 @@ bool WindowServer::handleEvent(QEvent* event)
 				capsLock = !capsLock;
 				return true;
 			}
-            else if (keyEvent->key() == Qt::Key_Power && keyEvent->isAutoRepeat()) {
+// QT5_TODO: Are these equivalent?
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+            else if (keyEvent->key() == KEYS::Key_Power && keyEvent->isAutoRepeat()) {
+#else
+            else if (keyEvent->key() == KEYS::Key_HardPower && keyEvent->isAutoRepeat()) {
+#endif
                 // safeguard against repeat power key events (BT keyboards)
 		    return true;
             }

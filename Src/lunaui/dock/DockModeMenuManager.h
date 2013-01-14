@@ -52,7 +52,7 @@ public:
 
 	void resize(int width, int height);
 
-	DockModeAppMenuContainer* dockAppContainer() const { return m_appMenuContainer; }
+    DockModeAppMenuContainer* dockAppContainer();
 	QGraphicsObject* getAppMenu() const { return m_menuObject; }
 	StatusBar* statusBar() const { return m_statusBar; }
 	bool isAppMenuOpen() const { return m_appMenuOpened; }
@@ -100,8 +100,12 @@ private:
 	bool m_systemMenuOpened;
 
 	DockModeAppMenuContainer* m_appMenuContainer;
-	QDeclarativeComponent* m_qmlNotifMenu;
-	QGraphicsObject* m_menuObject;
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+    QDeclarativeComponent* m_qmlNotifMenu;
+#else
+    QQmlComponent* m_qmlNotifMenu;
+#endif
+    QGraphicsObject* m_menuObject;
 
 	std::string m_currentApp;
 };

@@ -40,11 +40,6 @@ isEmpty (LUNA_SRC_BASE) {
 
 TOP_DIR_ABS = $$system(cd $$TOP_DIR_REL; pwd)
 
-WEBKIT_PATH = $$(WEBKIT_PATH)
-isEmpty (WEBKIT_PATH) {
-	WEBKIT_PATH = $$TOP_DIR_ABS/webkit4v8
-}
-
 DEFINES += TARGET_DESKTOP
 #DEFINES += ENABLE_JS_DEBUG_VERBOSE
 
@@ -73,6 +68,8 @@ INCLUDEPATH += \
 	$$(LUNA_STAGING)/include/sysmgr-ipc \
 	$$(LUNA_STAGING)/include/ime \
 	$$(LUNA_STAGING)/usr/include \
+	$$(LUNA_STAGING)/include \
+	$$(LUNA_STAGING)/include/luna-sysmgr-common \
 
 
 #install

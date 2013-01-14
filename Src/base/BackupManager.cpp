@@ -34,28 +34,9 @@
 
 /* BackupManager implementation is based on the API documented at https://wiki.palm.com/display/ServicesEngineering/Backup+and+Restore+2.0+API
  * On the LunaSysMgr side, this backs up launcher, quick launch and dock mode settings
- * On the WebAppMgr side, this backs up the sysmgr cookies
  */
 BackupManager* BackupManager::s_instance = NULL;
 
-/**
- * We use the same API for backing up HTML5 databases as we do the cookie
- * database. This is a phony appid that we use to identify the cookie db entry.
- */
-static const char * strCookieAppId = "com.palm.luna-sysmgr.cookies";
-static const char * strCookieTempFile = "/tmp/com.palm.luna-sysmgr.cookies-html5-backup.sql";
-
-
-/* this is the browser db file that was previously backed up by sysmgr, but will now move to mojodb.
- * this is needed only for the first restore after the ota for blowfish
- */
-static const char * strBrowserDbFile = "/tmp/com.palm.app.browser-html5-backup.sql";
-static const char * strBrowserDbUrl = "file:///usr/palm/applications/com.palm.app.browser/index.html:0";
-/*! \page com_palm_app_data_backup Service API com.palm.appDataBackup/
- *  Public methods:
- *  - \ref com_palm_app_data_backup_post_restore
- *  - \ref com_palm_app_data_backup_pre_backup
- */
 /**
  * These are the methods that the backup service can call when it's doing a 
  * backup or restore.
@@ -87,7 +68,7 @@ bool BackupManager::init(GMainLoop* mainLoop)
     char procName[100];
 
     // this service is expected to run from WebAppMgr process
-    m_strBackupServiceName = "com.palm.appDataBackup";
+    m_strBackupServiceName = "com.palm.sysMgrDataBackup";
     m_doBackupFiles = true;
     m_doBackupCookies = true;
 
@@ -186,62 +167,6 @@ BackupManager* BackupManager::instance()
 	return s_instance;
 }
 
-/*!
-\page com_palm_app_data_backup
-\n
-\section com_palm_app_data_backup_pre_backup preBackup
-
-\e Public.
-
-com.palm.appDataBackup/preBackup
-
-Make a backup of LunaSysMgr.
-
-\subsection com_palm_app_data_backup_pre_backup_syntax Syntax:
-\code
-{
-}
-\endcode
-
-\subsection com_palm_app_data_backup_pre_backup_returns Returns:
-\code
-{
-    "description": string,
-    "version": string,
-    "files": [ string array ]
-}
-\endcode
-
-\param descrition Describes the backup.
-\param version Version information.
-\param files String array of files included in the backup.
-
-\subsection com_palm_app_data_backup_pre_backup_examples Examples:
-\code
-luna-send -n 1 -f luna://com.palm.appDataBackup/preBackup '{}'
-\endcode
-
-Example response for a succesful call:
-\code
-{
-    "description": "Backup of LunaSysMgr files for launcher, quicklaunch, dockmode and sysmgr cookies",
-    "version": "1.0",
-    "files": [
-        "\/var\/luna\/preferences\/used-first-card",
-        "\/var\/palm\/user-exhibition-apps.json",
-        "\/var\/luna\/preferences\/launcher3\/launcher_fixed.msave",
-        "\/var\/luna\/preferences\/launcher3\/page_ReorderablePage_APPS_{eb1b2baa-dbe6-4d51-9ec2-2517fdd284ac}",
-        "\/var\/luna\/preferences\/launcher3\/page_ReorderablePage_DOWNLOADS_{88540c1e-7dc2-4f0f-b4aa-3721aab97ab7}",
-        "\/var\/luna\/preferences\/launcher3\/page_ReorderablePage_FAVORITES_{b83a9aa7-22f4-4ac8-b38a-4a68379ecd31}",
-        "\/var\/luna\/preferences\/launcher3\/page_ReorderablePage_SETTINGS_{6890fced-9122-4498-bbb1-50cb31b189b7}",
-        "\/var\/luna\/preferences\/launcher3\/quicklaunch_fixed.qlsave"
-    ]
-}
-\endcode
- *
- * Called by the backup service for all four of our callback functions: preBackup, 
- * postBackup, preRestore, postRestore.
- */
 bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, void *user_data)
 {
 	BackupManager* pThis = static_cast<BackupManager*>(user_data);
@@ -264,7 +189,7 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 	    return true;
 	}
 
-	json_object_object_add (response, "description", json_object_new_string ("Backup of LunaSysMgr files for launcher, quicklaunch, dockmode and sysmgr cookies"));
+    json_object_object_add (response, "description", json_object_new_string ("Backup of LunaSysMgr files for launcher, quicklaunch and dockmode"));
 	json_object_object_add (response, "version", json_object_new_string ("1.0"));
 
 	// adding the files for backup at the time of request. 
@@ -284,15 +209,6 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 	    }
 	}
 
-	if (pThis->m_doBackupCookies) {
-	    //FIXME-qtwebkit: bool succeeded = Palm::WebGlobal::startDatabaseDump (Palm::k_PhonyCookieUrl, "cookies", strCookieTempFile, NULL);
-		if (g_file_test(strCookieTempFile, fileTest)) {
-			// for cookies this call is synchronous
-			json_object_array_add (files, json_object_new_string (strCookieTempFile));
-			g_debug ("added cookies file %s to the backup list", strCookieTempFile);
-		}
-	}
-
 	json_object_object_add (response, "files", files);
 
 	LSError lserror;
@@ -308,58 +224,6 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 	return true;
 }
 
-/*!
-\page com_palm_app_data_backup
-\n
-\section com_palm_app_data_backup_post_restore postRestore
-
-\e Public.
-
-com.palm.appDataBackup/postRestore
-
-Restore a backup of LunaSysMgr.
-
-\subsection com_palm_app_data_backup_post_restore_syntax Syntax:
-\code
-{
-    "files" : [string array]
-}
-\endcode
-
-\param files List of backup files.
-
-\subsection com_palm_app_data_backup_post_restore_returns Returns:
-\code
-{
-    "returnValue": boolean
-}
-\endcode
-
-\param returnValue Indicates if the call was succesful.
-
-\subsection com_palm_app_data_backup_post_restore_examples Examples:
-\code
-luna-send -n 1 -f luna://com.palm.appDataBackup/postRestore '{
-    "files": [
-        "/var/luna/preferences/used-first-card",
-        "/var/palm/user-exhibition-apps.json",
-        "/var/luna/preferences/launcher3/launcher_fixed.msave",
-        "/var/luna/preferences/launcher3/page_ReorderablePage_APPS_{eb1b2baa-dbe6-4d51-9ec2-2517fdd284ac}",
-        "/var/luna/preferences/launcher3/page_ReorderablePage_DOWNLOADS_{88540c1e-7dc2-4f0f-b4aa-3721aab97ab7}",
-        "/var/luna/preferences/launcher3/page_ReorderablePage_FAVORITES_{b83a9aa7-22f4-4ac8-b38a-4a68379ecd31}",
-        "/var/luna/preferences/launcher3/page_ReorderablePage_SETTINGS_{6890fced-9122-4498-bbb1-50cb31b189b7}",
-        "/var/luna/preferences/launcher3/quicklaunch_fixed.qlsave"
-    ]
-}'
-\endcode
-
-Example response for a succesful call:
-\code
-{
-    "returnValue": true
-}
-\endcode
-*/
 bool BackupManager::postRestoreCallback( LSHandle* lshandle, LSMessage *message, void *user_data)
 {
     BackupManager* pThis = static_cast<BackupManager*>(user_data);
@@ -385,46 +249,6 @@ bool BackupManager::postRestoreCallback( LSHandle* lshandle, LSMessage *message,
 	return true;
     }
 
-    array_list* fileArray = json_object_get_array (files);
-    if (!fileArray) {
-	g_warning ("files is not an array");
-	return true;
-    }
-
-    int fileArrayLength = array_list_length (fileArray);
-    int index = 0;
-
-    g_debug ("%s: fileArrayLength = %d", __func__, fileArrayLength);
-
-    if (pThis->m_doBackupCookies) {
-	for (index = 0; index < fileArrayLength; ++index) {
-	    json_object* obj = (json_object*) array_list_get_idx (fileArray, index);
-	    if (!obj)
-		continue;
-
-	    std::string path = json_object_get_string (obj);
-	    if (path == strCookieTempFile) {
-		/*FIXME-qtwebkit: bool succeeded = Palm::WebGlobal::startDatabaseRestore(Palm::k_PhonyCookieUrl, "cookies", path, NULL);
-		// this call is synchronous for cookies
-		if (!succeeded) {
-		    g_warning ("Unable to restore the cookies");
-		}
-		else {
-		    g_debug ("cookies restored from %s to %s", path.c_str(), Palm::k_PhonyCookieUrl);
-		}*/
-	    }
-	    if (path == strBrowserDbFile) {
-		/*FIXME-qtwebkit: bool succeeded = Palm::WebGlobal::startDatabaseRestore(strBrowserDbUrl, "browser_data", path, NULL);
-		if (!succeeded) {
-		    g_warning ("Unable to restore the browser_data database");
-		}
-		else {
-		    g_debug ("browser_data database restored");
-		}*/
-	    }
-	}
-    }
-
     // no work needed for regular files
     LSError lserror;
     LSErrorInit(&lserror);
@@ -440,28 +264,4 @@ bool BackupManager::postRestoreCallback( LSHandle* lshandle, LSMessage *message,
 
     json_object_put (response);
     return true;
-
 }
-
-
-void BackupManager::dbDumpStarted( const Palm::DbBackupStatus& status, void* userData )
-{
-	g_message("Started database dump %s err: %d", status.url.c_str(), status.err);
-}
-
-void BackupManager::dbDumpStopped( const Palm::DbBackupStatus& status, void* userData )
-{
-	g_message("Stopped database dump %s err: %d",  status.url.c_str(), status.err);
-}
-
-void BackupManager::dbRestoreStarted( const Palm::DbBackupStatus& status, void* userData )
-{
-	g_message("Started restore of %s err: %d", status.url.c_str(), status.err);
-}
-
-void BackupManager::dbRestoreStopped( const Palm::DbBackupStatus& status, void* userData )
-{
-	g_message("Stopped restore of %s err: %d", status.url.c_str(), status.err);
-}
-
-
