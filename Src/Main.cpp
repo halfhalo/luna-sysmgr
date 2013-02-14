@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2008-2013 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -42,6 +42,12 @@
 #include "EASPolicyManager.h"
 #include "Logging.h"
 #include "BackupManager.h"
+
+#include <ProcessKiller.h>
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include "MouseEventEater.h"
+#endif
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -686,12 +692,20 @@ int main( int argc, char** argv)
 	QApplication app(argc, argv);
 	QApplication::setStartDragDistance(settings->tapRadius);
 	QApplication::setDoubleClickInterval (Settings::LunaSettings()->tapDoubleClickDuration);
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    QCoreApplication::setAttribute(Qt::AA_SynthesizeTouchForUnhandledMouseEvents, true);
+#endif
+
 	host->show();
-	
+
 	initMallocStatsCb(HostBase::instance()->mainLoop(), s_mallocStatsInterval);
+
 
 	// Initialize Preferences handler
 	(void) Preferences::instance();
+
+    LocalePreferences* lp = LocalePreferences::instance();
+    QObject::connect(lp, SIGNAL(prefsLocaleChanged()), new ProcessKiller(), SLOT(localeChanged()));
 
 	// Initialize Localization handler
 	(void) Localization::instance();
@@ -720,6 +734,11 @@ int main( int argc, char** argv)
 	WindowServer *windowServer = WindowServer::instance();
 	windowServer->installEventFilter(windowServer);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    MouseEventEater *eater = new MouseEventEater();
+    QCoreApplication::instance()->installEventFilter(eater);
+#endif
+
 	// Initialize the SysMgr MemoryMonitor
 	MemoryMonitor::instance();
 
@@ -736,5 +755,10 @@ int main( int argc, char** argv)
 	    g_timeout_add(0, finishBootup, 0);
 	
 	app.exec();
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    delete eater;
+#endif
+
 	return 0;
 }

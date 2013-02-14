@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2008-2013 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -61,7 +61,8 @@
 #include "Utils.h"
 #include "FlickGesture.h"
 #include "DockModeWindowManager.h"
-
+#include "WebosTapAndHoldGesture.h"
+#include "SingleClickGesture.h"
 #include <QGraphicsPixmapItem>
 
 static const int kTabletAlertWindowPadding       = 5;
@@ -97,12 +98,20 @@ DashboardWindowManager::DashboardWindowManager(int maxWidth, int maxHeight)
 
 	// grab all gestures handled by the scenes viewport widget so
 	// we can prevent them from being propogated to items below the dashboard
+
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	grabGesture(Qt::TapGesture);
 	grabGesture(Qt::TapAndHoldGesture);
 	grabGesture(Qt::PinchGesture);
 	grabGesture((Qt::GestureType) SysMgrGestureFlick);
 	grabGesture((Qt::GestureType) SysMgrGestureSingleClick);
-
+#else
+	grabGesture(Qt::TapGesture);
+	grabGesture(WebosTapAndHoldGesture::gestureType());
+	grabGesture(Qt::PinchGesture);
+    grabGesture(FlickGesture::gestureType());
+    grabGesture(SingleClickGesture::gestureType());
+#endif
 	SystemUiController* suc = SystemUiController::instance();
 	m_isOverlay = !suc->dashboardOwnsNegativeSpace();
 
@@ -128,6 +137,9 @@ DashboardWindowManager::DashboardWindowManager(int maxWidth, int maxHeight)
 	                       this, SLOT(slotOpenDashboard()));
 	connect(SystemUiController::instance(), SIGNAL(signalCloseAlert()),
 	                       this, SLOT(slotCloseAlert()));
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    setAcceptTouchEvents(true);
+#endif
 }
 
 DashboardWindowManager::~DashboardWindowManager()
@@ -478,8 +490,8 @@ void DashboardWindowManager::setBannerHasContent(bool val)
 void DashboardWindowManager::focusWindow(Window* w)
 {
 	// we listen to focus and blur only for alert windows
-	if (!(w->type() == Window::Type_PopupAlert ||
-		  w->type() == Window::Type_BannerAlert))
+	if (!(w->type() == WindowType::Type_PopupAlert ||
+		  w->type() == WindowType::Type_BannerAlert))
 
 		return;
 
@@ -496,8 +508,8 @@ void DashboardWindowManager::focusWindow(Window* w)
 void DashboardWindowManager::unfocusWindow(Window* w)
 {
 	// we listen to focus and blur only for alert windows
-	if (w->type() != Window::Type_PopupAlert &&
-		w->type() != Window::Type_BannerAlert)
+	if (w->type() != WindowType::Type_PopupAlert &&
+		w->type() != WindowType::Type_BannerAlert)
 		return;
 
 	AlertWindow* win = static_cast<AlertWindow*>(w);
@@ -938,17 +950,17 @@ void DashboardWindowManager::addAlertWindowBasedOnPriority(AlertWindow* win)
 
 void DashboardWindowManager::addWindow(Window* win)
 {
-	if (win->type() == Window::Type_PopupAlert || win->type() == Window::Type_BannerAlert)
+	if (win->type() == WindowType::Type_PopupAlert || win->type() == WindowType::Type_BannerAlert)
 		addAlertWindow(static_cast<AlertWindow*>(win));
-	else if (win->type() == Window::Type_Dashboard)
+	else if (win->type() == WindowType::Type_Dashboard)
 		m_dashboardWinContainer->addWindow(static_cast<DashboardWindow*>(win));
 }
 
 void DashboardWindowManager::removeWindow(Window* win)
 {
-	if (win->type() == Window::Type_PopupAlert || win->type() == Window::Type_BannerAlert)
+	if (win->type() == WindowType::Type_PopupAlert || win->type() == WindowType::Type_BannerAlert)
 		removeAlertWindow(static_cast<AlertWindow*>(win));
-	else if (win->type() == Window::Type_Dashboard)
+	else if (win->type() == WindowType::Type_Dashboard)
 		m_dashboardWinContainer->removeWindow(static_cast<DashboardWindow*>(win));
 
 	/* if dashboard is empty, all throb requests should have been dismissed
@@ -1059,14 +1071,55 @@ bool DashboardWindowManager::sceneEvent(QEvent* event)
 		}
 		break;
 	}
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    case QEvent::TouchBegin:
+    case QEvent::TouchUpdate:
+        if (!m_isOverlay) {
+            return true;
+        }
 
+        if (dashboardOpen()) {
+            return true;
+        }
+
+        return false;
+
+    case QEvent::TouchEnd: {
+        QTouchEvent *te = static_cast<QTouchEvent *>(event);
+
+        if (te->touchPoints().isEmpty()) {
+            return false;
+        }
+
+        if (!m_isOverlay) {
+            return true;
+        }
+
+        if (dashboardOpen()) {
+            hideDashboardWindow();
+            event->accept();
+
+            QPointF pos = mapToItem(m_bannerWin,
+                                    te->touchPoints().first().pos());
+
+            if (m_bannerWin->boundingRect().contains(pos)) {
+                m_bannerWin->resetIgnoreGestureUpEvent();
+            }
+
+            m_dashboardWinContainer->resetLocalState();
+        } else {
+            event->ignore();
+        }
+
+        return event->isAccepted();
+        }
+#endif
 	default:
 		break;
 	}
 
 	return WindowManagerBase::sceneEvent(event);
 }
-
 
 void DashboardWindowManager::raiseAlertWindow(AlertWindow* window)
 {
@@ -1255,7 +1308,7 @@ void DashboardWindowManager::resize(int width, int height)
 
 		for ( it=cachedWindows->begin() ; it != cachedWindows->end(); it++ ) {
 			Window* w = *it;
-			if(w->type() == Window::Type_PopupAlert || w->type() == Window::Type_BannerAlert) {
+			if(w->type() == WindowType::Type_PopupAlert || w->type() == WindowType::Type_BannerAlert) {
 				((AlertWindow*)w)->resizeEventSync((m_isOverlay ? kTabletNotificationContentWidth : width), 
 													((AlertWindow*)w)->initialHeight());
 			}

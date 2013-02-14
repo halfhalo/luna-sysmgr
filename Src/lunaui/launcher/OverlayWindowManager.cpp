@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2008-2013 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -88,6 +88,10 @@ static const double kDragScaleFactor = 1.2;
 static const int kMaxDragSide = 64; // clamp the drag image to 128x128
 
 static const char *kOverlayState = "overlayViewState";
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+static const int kTouchPointYOffset = 50;
+#endif
 
 #define TEST_DISABLE_LAUNCHER3	1
 
@@ -227,8 +231,11 @@ OverlayWindowManager::OverlayWindowManager(int maxWidth, int maxHeight)
 	////////// LAUNCHER CONTROL SIGNALS
 	connect(SystemUiController::instance(),SIGNAL(signalToggleLauncher()),
 			this,SLOT(slotSystemAPIToggleLauncher()));
-
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	grabGesture((Qt::GestureType) SysMgrGestureFlick);
+#else
+    grabGesture(FlickGesture::gestureType());
+#endif
 }
 
 OverlayWindowManager::~OverlayWindowManager()
@@ -747,21 +754,119 @@ void OverlayWindowManager::resize(int width, int height)
 bool OverlayWindowManager::sceneEvent(QEvent* event)
 {
 	if (event->type() == QEvent::GestureOverride) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 		QGesture* g = static_cast<QGestureEvent*>(event)->gesture((Qt::GestureType) SysMgrGestureFlick);
+#else
+        QGesture* g = static_cast<QGestureEvent*>(event)->gesture(FlickGesture::gestureType());
+#endif
 		if (g && m_universalSearchShown) {
 			event->accept();
 			return true;
 		}
 	} else if (event->type() == QEvent::Gesture) {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 		QGesture* g = static_cast<QGestureEvent*>(event)->gesture((Qt::GestureType) SysMgrGestureFlick);
+#else
+        QGesture* g = static_cast<QGestureEvent*>(event)->gesture(FlickGesture::gestureType());
+#endif
 		if (g && g->state() == Qt::GestureFinished && m_universalSearchShown) {
 			if (mouseFlickEvent(static_cast<FlickGesture*>(g)))
 				return true;
 		}
-	}
+    }
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    else if (event->type() == QEvent::TouchBegin ||
+               event->type() == QEvent::TouchEnd ||
+               event->type() == QEvent::TouchCancel ||
+               event->type() == QEvent::TouchUpdate) {
+        QTouchEvent *e = static_cast<QTouchEvent *>(event);
+
+        if (e->touchPoints().isEmpty()) {
+            return false;
+        } else if (e->type() == QEvent::TouchBegin) {
+            return handleTouchBegin(e);
+        } else if (e->type() == QEvent::TouchEnd ||
+                   e->type() == QEvent::TouchCancel) {
+            return handleTouchEnd(e);
+        } else if (e->type() == QEvent::TouchBegin) {
+            return handleTouchUpdate(e);
+        }
+    }
+#endif
 	return QGraphicsObject::sceneEvent(event);
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+bool OverlayWindowManager::handleTouchBegin(QTouchEvent *e)
+{
+    QPointF p = e->touchPoints().first().scenePos();
+    Event ev;
+	ev.type = Event::PenDown;
+	ev.setMainFinger(true);
+	ev.x = p.x();
+	ev.y = p.y();
+	ev.modifiers = Event::modifiersFromQt(e->modifiers());
+	ev.clickCount = 1;
+	ev.time = Time::curSysTimeMs();
+
+    if (handlePenDownEvent(&ev)) {
+		e->accept();
+	} else {
+		e->ignore();
+    }
+
+    return e->isAccepted();
+}
+
+bool OverlayWindowManager::handleTouchEnd(QTouchEvent *e)
+{
+    QPointF p = e->touchPoints().first().scenePos();
+    Event ev;
+	ev.setMainFinger(true);
+	ev.x = p.x();
+	ev.y = p.y();
+	ev.modifiers = Event::modifiersFromQt(e->modifiers());
+	ev.clickCount = 0;
+	ev.time = Time::curSysTimeMs();
+    bool handled = false;
+
+    if (e->type() == QEvent::TouchEnd){
+		ev.type = Event::PenUp;
+		handled = handlePenUpEvent(&ev);
+	} else {
+		ev.type = Event::PenCancel;
+		handled = handlePenCancelEvent(&ev);
+	}
+
+    if (handled) {
+        e->accept();
+    } else {
+        e->ignore();
+    }
+
+    return e->isAccepted();
+}
+
+bool OverlayWindowManager::handleTouchUpdate(QTouchEvent *e)
+{
+    QPointF p = e->touchPoints().first().scenePos();
+    Event ev;
+	ev.type = Event::PenMove;
+	ev.setMainFinger(true);
+	ev.x = p.x();
+	ev.y = p.y();
+	ev.modifiers = Event::modifiersFromQt(e->modifiers());
+	ev.time = Time::curSysTimeMs();
+
+    if (handlePenMoveEvent(&ev)) {
+        e->accept();
+    } else {
+        e->ignore();
+    }
+
+    return e->isAccepted();
+}
+#endif
 
 void OverlayWindowManager::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
@@ -918,7 +1023,7 @@ void OverlayWindowManager::keyReleaseEvent(QKeyEvent* event)
 bool OverlayWindowManager::handlePenDownEvent(Event* event)
 {
 	bool handled = false;
-	
+
 	if (m_penDownState != PenDownInvalid || event->rejected())
 		return false;
 
@@ -1247,13 +1352,17 @@ void OverlayWindowManager::slotPositiveSpaceChanged(const QRect& r)
 
 void OverlayWindowManager::mapCoordToWindow(Window* win, int& x, int& y) const
 {
-	if (!win)
-		return;
+    if (!win)
+        return;
 
-	QPointF pt = win->mapFromItem(this, x, y);
-	QRectF br = win->boundingRect();
-	x = pt.x() - br.x();
-	y = pt.y() - br.y();
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    y -= kTouchPointYOffset;
+#else
+    QPointF pt = win->mapFromItem(this, x, y);
+    QRectF br = win->boundingRect();
+    x = pt.x() - br.x();
+    y = pt.y() - br.y();
+#endif
 }
 
 void OverlayWindowManager::slotLauncherOpened()
@@ -1741,7 +1850,7 @@ void OverlayWindowManager::addWindow(Window* win)
 {
 	WindowManagerBase::addWindow(win);
 
-	if( win->type() == Window::Type_Launcher )
+	if( win->type() == WindowType::Type_Launcher )
 	{
 		m_universalSearchWin = win;
 
@@ -1768,7 +1877,7 @@ void OverlayWindowManager::addWindow(Window* win)
         // IME Support: Set universal search window so SysUi can track it...
 		SystemUiController::instance()->setUniversalSearchWindow(m_universalSearchWin);
 	}
-	else if ( win->type() == Window::Type_QtNativePaintWindow )
+	else if ( win->type() == WindowType::Type_QtNativePaintWindow )
 	{
 		win->setZValue(Z_LAUNCHER_WIN);
 		win->setPos(0,0);

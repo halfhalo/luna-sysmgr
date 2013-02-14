@@ -1,6 +1,6 @@
 # @@@LICENSE
 #
-#      Copyright (c) 2010-2012 Hewlett-Packard Development Company, L.P.
+#      Copyright (c) 2010-2013 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ ENV_BUILD_TYPE = $$(BUILD_TYPE)
 CONFIG += no_keywords
 
 CONFIG += link_pkgconfig
-PKGCONFIG = glib-2.0 gthread-2.0
+PKGCONFIG = glib-2.0 gthread-2.0 LunaSysMgrIpc
 
 QT = core gui network
 
@@ -62,15 +62,12 @@ VPATH = \
 		./Src \
 		./Src/base \
 		./Src/base/application \
-		./Src/base/hosts \
 		./Src/base/visual \
 		./Src/base/gesture \
 		./Src/base/windowdata \
 		./Src/base/settings \
 		./Src/core \
-		./Src/js \
 		./Src/sound \
-		./Src/webbase \
 		./Src/lunaui \
         ./Src/lunaui/cards \
         ./Src/lunaui/notifications \
@@ -131,10 +128,7 @@ DEFINES += SHIPPING_VERSION=0
 
 SOURCES = \
 	MallocHooks.cpp \
-	Mutex.cpp \
-	TaskBase.cpp \
 	CpuAffinity.cpp \
-    HostBase.cpp \
 	KeywordMap.cpp \
 	Window.cpp \
 	ActiveCallBanner.cpp \
@@ -153,9 +147,6 @@ SOURCES = \
 	WindowServerMinimal.cpp \
 	WindowManagerMinimal.cpp \
 	MetaKeyManager.cpp \
-	SingletonTimer.cpp \
-	Timer.cpp \
-	Settings.cpp \
 	DisplayManager.cpp \
 	DisplayStates.cpp \
 	AmbientLightSensor.cpp \
@@ -163,8 +154,6 @@ SOURCES = \
 	EventReporter.cpp \
 	SystemUiController.cpp \
 	BannerMessageHandler.cpp \
-	Logging.cpp \
-	Utils.cpp \
 	Main.cpp \
 #	JsSysObjectAnimationRunner.cpp \
 	SystemService.cpp \
@@ -178,7 +167,6 @@ SOURCES = \
 	RoundedCorners.cpp \
 	CoreNaviManager.cpp \
 	CoreNaviLeds.cpp \
-	Localization.cpp \
 	DeviceInfo.cpp \
 	Security.cpp \
 	EASPolicyManager.cpp \
@@ -191,7 +179,6 @@ SOURCES = \
 	ApplicationStatus.cpp \
 	FullEraseConfirmationWindow.cpp \
 	SoundPlayerPool.cpp \
-	AsyncCaller.cpp \
 	HostWindow.cpp \
 	HostWindowData.cpp \
 	HostWindowDataSoftware.cpp \
@@ -225,7 +212,7 @@ SOURCES = \
 	DockModePositionManager.cpp \
 	DockModeAppMenuContainer.cpp \
 	DockModeClock.cpp \
-	DockModeMenuManager.cpp \
+        DockModeMenuManager.cpp \
 	CardDropShadowEffect.cpp \
 	CardGroup.cpp \
 	SingleClickGestureRecognizer.cpp \
@@ -255,15 +242,20 @@ SOURCES = \
 	IMEController.cpp \
 	KeyLocationRecorder.cpp \
     VirtualKeyboardPreferences.cpp \
-    JSONUtils.cpp \
     GhostCard.cpp \
     WSOverlayScreenShotAnimation.cpp \
     InputClient.cpp \
 	QmlAlertWindow.cpp \
     QtHostWindow.cpp \
     UiNavigationController.cpp \
-    NyxSensorConnector.cpp \
-    BackupManager.cpp 
+    BackupManager.cpp \
+    LsmUtils.cpp \
+    WebosTapGestureRecognizer.cpp \
+    WebosTapAndHoldGestureRecognizer.cpp \
+    FlickGestureRecognizer.cpp \
+    ScreenEdgeFlickGestureRecognizer.cpp
+
+
 
 HEADERS = \
 	AmbientLightSensor.h \
@@ -284,41 +276,26 @@ HEADERS = \
 	EventThrottler.h \
 	EventThrottlerIme.h \
 	HapticsController.h \
-    HostBase.h \
 	HostWindow.h \
 	HostWindowData.h \
 	HostWindowDataSoftware.h \
 	InputManager.h \
 	LaunchPoint.h \
-	Localization.h \
-	Logging.h \
 	MetaKeyManager.h \
 	MimeSystem.h \
 	Preferences.h \
 	RoundedCorners.h \
 	Security.h \
-	Settings.h \
 	SuspendBlocker.h \
 	SystemService.h \
 	SystemUiController.h \
-	Utils.h \
 	Window.h \
 	WindowManagerBase.h \
 	WindowServer.h \
 	TouchPlot.h \
 	AnimationEquations.h \
-	AsyncCaller.h \
-	Event.h \
 	GraphicsDefs.h \
-	KeywordMap.h \
-	Mutex.h \
-	MutexLocker.h \
 	PtrArray.h \
-	SingletonTimer.h \
-	sptr.h \
-	TaskBase.h \
-	Time.h \
-	Timer.h \
 #	JsSysObjectAnimationRunner.h \
 	ActiveCallBanner.h \
 	BannerMessageEventFactory.h \
@@ -399,7 +376,6 @@ HEADERS = \
 	IMEController.h \
 	KeyLocationRecorder.h \
     VirtualKeyboardPreferences.h \
-    JSONUtils.h \
     GhostCard.h \
     WSOverlayScreenShotAnimation.h \
     InputClient.h \
@@ -407,13 +383,21 @@ HEADERS = \
     CardRoundedCornerShaderStage.h \
 	QmlAlertWindow.h \
     QtHostWindow.h \
+    BackupManager.h \
     UiNavigationController.h \
-    NyxSensorCommonTypes.h \
-    NyxSensorConnector.h \
-    BackupManager.h
+    LsmUtils.h \
+    WebosTapGestureRecognizer.h \
+    WebosTapAndHoldGestureRecognizer.h \
+    FlickGestureRecognizer.h \
+    FlickGesture.h \
+    ScreenEdgeFlickGesture.h \
+    WebosTapAndHoldGesture.h \
+    ScreenEdgeFlickGestureRecognizer.h \
+    FlickEvent.h
 
 contains(QT_VERSION, "^5.*") {
-    HEADERS += QmlInputItemQt5.h
+    HEADERS += QmlInputItemQt5.h \
+        MouseEventEater.h
 } else {
     HEADERS += QmlInputItem.h
 }
@@ -666,14 +650,6 @@ contains(CONFIG_BUILD, mediaapi) {
 }
 
 contains(CONFIG_BUILD, nyx) {
-    HEADERS +=  NyxInputControl.h \
-                NyxLedControl.h \
-
-    VPATH += Src/input
-
-    SOURCES += NyxInputControl.cpp \
-           NyxLedControl.cpp \
-
     DEFINES += HAS_NYX
 }
 
@@ -704,6 +680,8 @@ OBJECTS_DIR = $$DESTDIR/.obj
 MOC_DIR = $$DESTDIR/.moc
 
 TARGET = LunaSysMgr
+
+LIBS += -lLunaSysMgrCommon
 
 # Comment these out to get verbose output
 #QMAKE_CXX = @echo Compiling $(@)...; $$QMAKE_CXX

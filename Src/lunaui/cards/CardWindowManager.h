@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2008-2013 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -145,6 +145,16 @@ private:
 	void handleMouseReleaseMinimized(QGraphicsSceneMouseEvent* event);
 	void handleMouseReleaseReorder(QGraphicsSceneMouseEvent* event);
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    void handleTouchBeginMinimized(QTouchEvent* e);
+
+    void handleTouchUpdateMinimized(QTouchEvent* e);
+    void handleTouchUpdateReorder(QTouchEvent* e);
+
+    void handleTouchEndMinimized(QTouchEvent* e);
+    void handleTouchEndReorder(QTouchEvent* e);
+#endif
+
 	void handleFlickGestureMinimized(QGestureEvent* event);
 
 	void handleTapGestureMinimized(QTapGesture* event);
@@ -250,7 +260,13 @@ private:
     bool playAngryCardSounds() const;
     void updateAngryCardThreshold();
 
-        void markFirstCardDone();
+    void markFirstCardDone();
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    bool handleTouchBegin(QTouchEvent *e);
+    bool handleTouchEnd(QTouchEvent *e);
+    bool handleTouchUpdate(QTouchEvent *e);
+#endif
 
 	QSet<CardWindow*> m_pendingActionWinSet;
     QSet<CardWindow*> m_pendingTouchToShareWinSet;

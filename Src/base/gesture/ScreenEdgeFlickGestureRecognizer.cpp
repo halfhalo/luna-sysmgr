@@ -28,44 +28,38 @@
 #include <QTransform>
 #include <QDebug>
 
-#include "FlickGesture.h"
+#include "ScreenEdgeFlickGesture.h"
+#include "ScreenEdgeFlickGestureRecognizer.h"
 
 #include "Time.h"
 #include "HostBase.h"
 #include "FlickEvent.h"
+#include "ScreenEdgeFlickGesture.h"
 
-Qt::GestureType FlickGesture::type = Qt::CustomGesture;
+Qt::GestureType ScreenEdgeFlickGesture::type = Qt::CustomGesture;
 
-FlickGestureRecognizer::FlickGestureRecognizer()
+
+QGesture* ScreenEdgeFlickGestureRecognizer::create (QObject* target)
 {
+    return new ScreenEdgeFlickGesture;
 }
 
-FlickGestureRecognizer::~FlickGestureRecognizer()
-{
-}
 
-QGesture* FlickGestureRecognizer::create(QObject* target)
+QGestureRecognizer::Result ScreenEdgeFlickGestureRecognizer::recognize(QGesture* gesture, QObject* watched, QEvent* event)
 {
-	return new FlickGesture;
-}
-
-QGestureRecognizer::Result FlickGestureRecognizer::recognize(QGesture* gesture, QObject* watched, QEvent* event)
-{
-	FlickGesture* g = static_cast<FlickGesture*>(gesture);
-	QGestureRecognizer::Result result = QGestureRecognizer::Ignore;
+    ScreenEdgeFlickGesture* g = static_cast<ScreenEdgeFlickGesture*>(gesture);
+    QGestureRecognizer::Result result = QGestureRecognizer::Ignore;
 
     switch (event->type()) {
-    case SysMgrGestureFlick: {
-        FlickEvent* ev = static_cast<FlickEvent*>(event);
+    case SysMgrGestureScreenEdgeFlick: {
+        ScreenEdgeFlickEvent* ev = static_cast<ScreenEdgeFlickEvent*>(event);
         if (ev->state() == Qt::GestureStarted) {
-            g->m_velocity = ev->velocity();
-            g->m_endPos = ev->velocity();
-            g->m_startPos = ev->startPos();
+            g->m_edge = (ScreenEdgeFlickGesture::Edge)ev->edge();
+            g->m_yDistance = ev->yDistance();
             result = QGestureRecognizer::TriggerGesture;
         } else if (ev->state() == Qt::GestureFinished) {
-            g->m_velocity = ev->velocity();
-            g->m_endPos = ev->velocity();
-            g->m_startPos = ev->startPos();
+            g->m_edge = (ScreenEdgeFlickGesture::Edge)ev->edge();
+            g->m_yDistance = ev->yDistance();
             result = QGestureRecognizer::FinishGesture;
         }
     }
@@ -73,15 +67,14 @@ QGestureRecognizer::Result FlickGestureRecognizer::recognize(QGesture* gesture, 
     default:
         break;
     }
-	return result;
+    return result;
+
 }
 
-
-void FlickGestureRecognizer::reset (QGesture* state)
+void ScreenEdgeFlickGestureRecognizer::reset (QGesture* state)
 {
-    FlickGesture *gesture = static_cast<FlickGesture *>(state);
-    gesture->m_velocity = QPoint(0,0);
-    gesture->m_endPos = QPoint(0,0);
-    gesture->m_startPos = QPoint(0,0);
+    ScreenEdgeFlickGesture *gesture = static_cast<ScreenEdgeFlickGesture *>(state);
+    gesture->m_edge = ScreenEdgeFlickGesture::EdgeUnknown;
+    gesture->m_yDistance = 0;
     QGestureRecognizer::reset(state);
 }

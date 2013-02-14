@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2008-2013 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -85,7 +85,13 @@
 #include "Preferences.h"            // Neeed for IME
 
 #include "NativeAlertManager.h"
+#include "SingleClickGesture.h"
 #include "SingleClickGestureRecognizer.h"
+
+#include "WebosTapAndHoldGesture.h"
+#include "WebosTapAndHoldGestureRecognizer.h"
+#include "WebosTapGestureRecognizer.h"
+#include "ScreenEdgeFlickGesture.h"
 #include "FlickGestureRecognizer.h"
 #include "QtUtils.h"
 
@@ -259,7 +265,7 @@ static WindowServerOverlay* s_overlay = 0;
 Runtime::Runtime(QObject* parent)
 	: QObject(parent), m_orientation(Orientation_Portrait), m_twelveHourClock (true)
 {
-	connect (Preferences::instance(), SIGNAL(signalTimeFormatChanged(const char*)),
+    connect (LocalePreferences::instance(), SIGNAL(signalTimeFormatChanged(const char*)),
 			this, SLOT(slotTimeFormatChanged (const char*)));
 }
 
@@ -287,7 +293,7 @@ void Runtime::setOrientation (OrientationEvent::Orientation orient)
 void Runtime::slotTimeFormatChanged (const char* format)
 {
 	bool oldSetting = m_twelveHourClock;
-	m_twelveHourClock = (Preferences::instance()->timeFormat() == "HH12");
+    m_twelveHourClock = (LocalePreferences::instance()->timeFormat() == "HH12");
 	if (oldSetting != m_twelveHourClock)
 		Q_EMIT clockFormatChanged();
 }
@@ -429,8 +435,19 @@ WindowServer::WindowServer()
 	if (!viewportWidget)
 		viewportWidget = new QWidget;
 
+<<<<<<< HEAD
 	QGestureRecognizer::registerRecognizer(new SingleClickGestureRecognizer);
 	QGestureRecognizer::registerRecognizer(new FlickGestureRecognizer);
+=======
+    QGestureRecognizer::registerRecognizer(new WebosTapGestureRecognizer);
+
+    Qt::GestureType customType = QGestureRecognizer::registerRecognizer(new SingleClickGestureRecognizer);
+    SingleClickGesture::setGestureType(customType);
+
+    customType = QGestureRecognizer::registerRecognizer(new WebosTapAndHoldGestureRecognizer);
+    WebosTapAndHoldGesture::setGestureType(customType);
+
+>>>>>>> c22f1fc9557d970391e010cb7c67b33ba00b57c6
 
 	viewportWidget->setAttribute(Qt::WA_AcceptTouchEvents);
 	viewportWidget->setAttribute(Qt::WA_OpaquePaintEvent, true);
@@ -459,12 +476,18 @@ WindowServer::WindowServer()
 	scene->setItemIndexMethod(QGraphicsScene::NoIndex);
 
 	viewportWidget->grabGesture(Qt::TapGesture);
-	viewportWidget->grabGesture(Qt::TapAndHoldGesture);
 	viewportWidget->grabGesture(Qt::PinchGesture);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+	viewportWidget->grabGesture(Qt::TapAndHoldGesture);
 	viewportWidget->grabGesture((Qt::GestureType) SysMgrGestureFlick);
 	viewportWidget->grabGesture((Qt::GestureType) SysMgrGestureSingleClick);
 	viewportWidget->grabGesture((Qt::GestureType) SysMgrGestureScreenEdgeFlick);
-
+#else
+    viewportWidget->grabGesture(WebosTapAndHoldGesture::gestureType());
+    viewportWidget->grabGesture(FlickGesture::gestureType());
+    viewportWidget->grabGesture(SingleClickGesture::gestureType());
+    viewportWidget->grabGesture(ScreenEdgeFlickGesture::gestureType());
+#endif
 	m_uiRootItem.setBoundingRect(QRectF(-SystemUiController::instance()->currentUiWidth()/2, -SystemUiController::instance()->currentUiHeight()/2,
 						         SystemUiController::instance()->currentUiWidth(), SystemUiController::instance()->currentUiHeight()));
 
@@ -1294,10 +1317,10 @@ void WindowServer::setWindowProperties(Window* win, const WindowProperties& prop
 		return;
 
 	switch (win->type()) {
-	case (Window::Type_Card):
-	case (Window::Type_ChildCard):
-	case (Window::Type_Emergency):
-	case (Window::Type_Dashboard):
+    case (WindowType::Type_Card):
+    case (WindowType::Type_ChildCard):
+    case (WindowType::Type_Emergency):
+    case (WindowType::Type_Dashboard):
 		break;
 	default:
 		return;

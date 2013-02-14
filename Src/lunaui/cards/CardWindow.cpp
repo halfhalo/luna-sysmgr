@@ -1,6 +1,6 @@
 /* @@@LICENSE
 *
-*      Copyright (c) 2008-2012 Hewlett-Packard Development Company, L.P.
+*      Copyright (c) 2008-2013 Hewlett-Packard Development Company, L.P.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -25,12 +25,6 @@
 
 #include <PIpcBuffer.h>
 #include <PIpcChannel.h>
-
-#if defined(HAVE_OPENGL) && defined(TARGET_DEVICE)
-#define USE_ROUNDEDCORNER_SHADER 1
-#else
-#undef USE_ROUNDEDCORNER_SHADER
-#endif
 
 #if defined(USE_ROUNDEDCORNER_SHADER)
 #include <QtOpenGL/qglcustomshaderstage_p.h>
@@ -94,7 +88,7 @@ QVariant positionInterpolator(const CardWindow::Position &start, const CardWindo
 	return qVariantFromValue(CardWindow::Position(start + (end - start) * progress));
 }
 
-CardWindow::CardWindow(Window::Type type, HostWindowData* data, IpcClientHost* clientHost)
+CardWindow::CardWindow(WindowType::Type type, HostWindowData* data, IpcClientHost* clientHost)
 	: HostWindow(type, data, clientHost)
 	, m_prepareAddedToWm(false)
 	, m_addedToWm(false)
@@ -104,7 +98,11 @@ CardWindow::CardWindow(Window::Type type, HostWindowData* data, IpcClientHost* c
 	, m_maximized(false)
 	, m_forceFocus(true)
 	, m_focused(false)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    , m_touchEventsEnabled(true)
+#else
 	, m_touchEventsEnabled(false)
+#endif
 	, m_pendingFocus(PendingFocusNone)
 	, m_loadingAnim(0)
 	, m_loadingTimerId(0)
@@ -135,7 +133,7 @@ CardWindow::CardWindow(Window::Type type, HostWindowData* data, IpcClientHost* c
     init();
 }
 
-CardWindow::CardWindow(Window::Type type, const QPixmap& pixmap)
+CardWindow::CardWindow(WindowType::Type type, const QPixmap& pixmap)
 	: HostWindow(type, pixmap.width(), pixmap.height(), false)
 	, m_prepareAddedToWm(false)
 	, m_addedToWm(false)
@@ -145,7 +143,11 @@ CardWindow::CardWindow(Window::Type type, const QPixmap& pixmap)
 	, m_maximized (false)
 	, m_forceFocus(true)
 	, m_focused(false)
-	, m_touchEventsEnabled(false)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+    , m_touchEventsEnabled(true)
+#else
+    , m_touchEventsEnabled(false)
+#endif
 	, m_pendingFocus(PendingFocusNone)
 	, m_loadingAnim(0)
 	, m_loadingTimerId(0)
@@ -178,9 +180,14 @@ CardWindow::CardWindow(Window::Type type, const QPixmap& pixmap)
 void CardWindow::init()
 {
 	setFlags(QGraphicsItem::ItemIsFocusable);
+	grabGesture(Qt::PinchGesture);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	grabGesture((Qt::GestureType) SysMgrGestureFlick);
 	grabGesture((Qt::GestureType) SysMgrGestureSingleClick);
-	grabGesture(Qt::PinchGesture);
+#else
+    grabGesture(FlickGesture::gestureType());
+    grabGesture(SingleClickGesture::gestureType());
+#endif
 
 	connect(DisplayManager::instance(), SIGNAL(signalDisplayStateChange(int)),
 										   SLOT(slotDisplayStateChanged(int)));
@@ -188,7 +195,7 @@ void CardWindow::init()
 	connect(IMEController::instance(), SIGNAL(signalShowIME()), SLOT(slotShowIME()));
 	connect(IMEController::instance(), SIGNAL(signalHideIME()), SLOT(slotHideIME()));
 
-	if (Window::Type_ModalChildWindowCard == type()) {
+    if (WindowType::Type_ModalChildWindowCard == type()) {
 		m_ModalWindowEndY = 0;
 		m_modalWindowShrinkHeight = 0;
 		m_fRecomputeInitPositionsValues = true;
@@ -214,14 +221,19 @@ CardWindow::~CardWindow()
 
 	delete m_loadingAnim;
 
-	if(m_maximized && Window::Type_ModalChildWindowCard != type()) {
+    if(m_maximized && WindowType::Type_ModalChildWindowCard != type()) {
 		// disable the direct rendering request for this window with SystemUiController
 		SystemUiController::instance()->setDirectRenderingForWindow(SystemUiController::CARD_WINDOW_MANAGER, this, false);
 	}
 
+	ungrabGesture(Qt::PinchGesture);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	ungrabGesture((Qt::GestureType) SysMgrGestureSingleClick);
 	ungrabGesture((Qt::GestureType) SysMgrGestureFlick);
-	ungrabGesture(Qt::PinchGesture);
+#else
+    ungrabGesture(SingleClickGesture::gestureType());
+    ungrabGesture(FlickGesture::gestureType());
+#endif
 
 #if defined(USE_ROUNDEDCORNER_SHADER)
 	delete m_roundedCornerShaderStage;
@@ -317,13 +329,16 @@ bool CardWindow::sceneEvent(QEvent* event)
 				event->accept();
 				return true;
 			}
-
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 			g = ge->gesture((Qt::GestureType) SysMgrGestureFlick);
+#else
+            g = ge->gesture(FlickGesture::gestureType());
+#endif
 			if (g) {
 				event->accept();
 				return true;
 			}
-			g = ge->gesture((Qt::GestureType) SysMgrGestureSingleClick);
+            g = ge->gesture(SingleClickGesture::gestureType());
 			if (g) {
 				event->accept();
 				return true;
@@ -331,7 +346,11 @@ bool CardWindow::sceneEvent(QEvent* event)
 		}
 		else if (event->type() == QEvent::Gesture) {
 			QGestureEvent* ge = static_cast<QGestureEvent*>(event);
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 			QGesture* g = ge->gesture((Qt::GestureType) SysMgrGestureFlick);
+#else
+            QGesture* g = ge->gesture(FlickGesture::gestureType());
+#endif
 			if (g && g->state() == Qt::GestureFinished) {
 				if (mouseFlickEvent(ge)) {
 					return true;
@@ -344,22 +363,34 @@ bool CardWindow::sceneEvent(QEvent* event)
 					return true;
 				}
 			}
-			g = ge->gesture((Qt::GestureType) SysMgrGestureSingleClick);
+            g = ge->gesture(SingleClickGesture::gestureType());
 			if (g && g->state() == Qt::GestureFinished) {
 			    if (mouseSingleClickEvent (ge)) {
 					return true;
 				}
 			}
 		}
-		else if (event->type() == QEvent::TouchBegin
-			|| event->type() == QEvent::TouchUpdate
-			|| event->type() == QEvent::TouchEnd) 
-		{
-		    QTouchEvent* te = static_cast<QTouchEvent*>(event);
-		    if (touchEvent (te)) {
-				return true;
-			}
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        else if (event->type() == QEvent::TouchBegin ||
+                   event->type() == QEvent::TouchUpdate ||
+                   event->type() == QEvent::TouchEnd) {
+		    QTouchEvent* te = static_cast<QTouchEvent *>(event);
+
+            if (te->touchPoints().isEmpty()) {
+                return false;
+            }
+
+            if (te->type() == QEvent::TouchBegin) {
+                handleTouchBegin(te);
+            } else if (te->type() == QEvent::TouchEnd) {
+                handleTouchEnd(te);
+            } else if (te->type() == QEvent::TouchUpdate) {
+                handleTouchUpdate(te);
+            }
+
+            return touchEvent(te);
 		}
+#endif
         else if (event->type() == QEvent::KeyPress) {
             // Tab is normally treated as focus shifting in qgraphicsitems
             if (static_cast<QKeyEvent*>(event)->key() == Qt::Key_Tab) {
@@ -392,8 +423,6 @@ void CardWindow::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
 	event->accept();
 
-	QRectF br = boundingRect();
-
 	Event ev;
 	ev.type = Event::PenDown;
 	ev.setMainFinger(true);
@@ -420,8 +449,6 @@ void CardWindow::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 			m_modalChild->mouseDoubleClickEvent(event);
 			return;
 	}
-
-	QRectF br = boundingRect();
 
 	Event ev;
 	ev.type = Event::PenDown;
@@ -450,8 +477,6 @@ void CardWindow::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 			return;
 	}
 
-	QRectF br = boundingRect();
-
 	Event ev;
 	ev.type = Event::PenMove;
 	ev.setMainFinger(true);
@@ -478,8 +503,6 @@ void CardWindow::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 			return;
 	}
 
-	QRectF br = boundingRect();
-
 	Event ev;
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	if (event->canceled())
@@ -502,6 +525,108 @@ void CardWindow::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 	inputEvent(&ev);
 }
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+void CardWindow::handleTouchBegin(QTouchEvent *te)
+{
+    switch (forwardToModal()) {
+        case ParentHandleEvent:
+          break;
+
+        case WaitForChildToAcceptEvents:
+            te->accept();
+            return;
+
+        case ForwardEventToChild:
+            m_modalChild->handleTouchBegin(te);
+            return;
+    }
+
+    if (!m_focused || m_pendingFocus == PendingFocusFalse) {
+        te->ignore();
+        return;
+    }
+
+    Event ev;
+    ev.type = Event::PenDown;
+    ev.setMainFinger(true);
+    qreal x = te->touchPoints().first().pos().x();
+    qreal y = te->touchPoints().first().pos().y();
+    mapCoordinates(x, y);
+    ev.x = x;
+    ev.y = y;
+    ev.clickCount = 1;
+    ev.modifiers = Event::modifiersFromQt(te->modifiers());
+    ev.time = Time::curSysTimeMs();
+
+    inputEvent(&ev);
+}
+
+void CardWindow::handleTouchEnd(QTouchEvent *te)
+{
+    switch (forwardToModal()) {
+        case ParentHandleEvent:
+            break;
+
+        case WaitForChildToAcceptEvents:
+            return;
+
+        case ForwardEventToChild:
+            m_modalChild->handleTouchEnd(te);
+            return;
+    }
+
+    QPointF pos = te->touchPoints().first().pos();
+    Event ev;
+
+    if (te->type() == QTouchEvent::TouchCancel) {
+        ev.type = Event::PenCancel;
+    } else {
+        ev.type = Event::PenUp;
+    }
+
+    ev.setMainFinger(true);
+    qreal x = pos.x();
+    qreal y = pos.y();
+    mapCoordinates(x,y);
+    ev.x = x;
+    ev.y = y;
+    ev.clickCount = 0;
+    ev.modifiers = Event::modifiersFromQt(te->modifiers());
+    ev.time = Time::curSysTimeMs();
+
+    inputEvent(&ev);
+}
+
+void CardWindow::handleTouchUpdate(QTouchEvent *te)
+{
+    switch (forwardToModal()) {
+        case ParentHandleEvent:
+            break;
+
+        case WaitForChildToAcceptEvents:
+            return;
+
+        case ForwardEventToChild:
+            m_modalChild->handleTouchUpdate(te);
+            return;
+    }
+
+    QPointF pos = te->touchPoints().first().pos();
+    Event ev;
+    ev.type = Event::PenMove;
+    ev.setMainFinger(true);
+    qreal x = pos.x();
+    qreal y = pos.y();
+    mapCoordinates(x,y);
+    ev.x = x;
+    ev.y = y;
+    ev.modifiers = Event::modifiersFromQt(te->modifiers());
+    ev.time = Time::curSysTimeMs();
+
+    inputEvent(&ev);
+}
+#endif
+
 bool CardWindow::mouseFlickEvent(QGestureEvent* event)
 {
 	switch(forwardToModal()) {
@@ -512,12 +637,14 @@ bool CardWindow::mouseFlickEvent(QGestureEvent* event)
 		case ForwardEventToChild:
 			return m_modalChild->mouseFlickEvent(event);
 	}
-
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	QGesture* g = event->gesture((Qt::GestureType) SysMgrGestureFlick);
+#else
+    QGesture* g = event->gesture(FlickGesture::gestureType());
+#endif
 	FlickGesture* flick = static_cast<FlickGesture*>(g);
 
 	QPointF pos = mapFromScene(event->mapToGraphicsScene(flick->hotSpot()));
-	QRectF br = boundingRect();
 
 	Event ev;
 	ev.type = Event::PenFlick;
@@ -548,11 +675,10 @@ bool CardWindow::mouseSingleClickEvent(QGestureEvent* singleClickEvent)
 			return m_modalChild->mouseSingleClickEvent(singleClickEvent);
 	}
 
-	QGesture* g = singleClickEvent->gesture((Qt::GestureType) SysMgrGestureSingleClick);
+    QGesture* g = singleClickEvent->gesture(SingleClickGesture::gestureType());
 	SingleClickGesture* singleClick = static_cast<SingleClickGesture*>(g);
 
 	QPointF pos = mapFromScene(singleClickEvent->mapToGraphicsScene(singleClick->hotSpot()));
-	QRectF br = boundingRect();
 
 	Event ev;
 	ev.type = Event::PenSingleTap;
@@ -603,8 +729,6 @@ bool CardWindow::pinchEvent(QGestureEvent* event)
 		return false;
 	}
 
-	QRectF br = boundingRect();
-	
 	ev.gestureScale = pinch->totalScaleFactor();
 	ev.gestureRotate = pinch->totalRotationAngle();
 	QPointF centerPt = mapFromScene(event->mapToGraphicsScene(pinch->centerPoint()));
@@ -681,7 +805,7 @@ void CardWindow::resizeEventSync(int w, int h)
 {
 	// Ignore this check if we are modal window.
 
-	if(Window::Type_ModalChildWindowCard != type()) {
+    if(WindowType::Type_ModalChildWindowCard != type()) {
 		if(SystemUiController::instance()->isUiRotating())
 			return;
 	}
@@ -692,7 +816,7 @@ void CardWindow::resizeEventSync(int w, int h)
 
 		int dummy = 0;
 
-		if(Window::Type_ModalChildWindowCard != type()) {
+        if(WindowType::Type_ModalChildWindowCard != type()) {
 			if (m_adjustmentAngle == 90 || m_adjustmentAngle == -90){
 				if (m_channel)
 					m_channel->sendSyncMessage(new View_SyncResize(routingId(), h, w, false, &dummy));
@@ -1199,7 +1323,7 @@ bool CardWindow::coversScreenFully() const
 void CardWindow::enableFullScreen()
 {
 	// Modal Cards cannot be full screen - ever.
-	if (Window::Type_ModalChildWindowCard == type()) {
+    if (WindowType::Type_ModalChildWindowCard == type()) {
 		m_fullScreenEnabled = true;
 		return;
 	}
@@ -1327,7 +1451,7 @@ bool CardWindow::delayPrepare()
 
 void CardWindow::startLoadingOverlay()
 {
-	if (!m_loadingAnim && type() == Window::Type_Card) {
+    if (!m_loadingAnim && type() == WindowType::Type_Card) {
 
 		m_loadingAnim = new CardLoading(this);
 		connect(m_loadingAnim, SIGNAL(signalLoadingFinished()),
@@ -1407,7 +1531,7 @@ gboolean CardWindow::loadingTimeout(gpointer data)
 		else {
 
 			// still waiting for the window to get added
-			if(Window::Type_ModalChildWindowCard != win->type())
+            if(WindowType::Type_ModalChildWindowCard != win->type())
 				win->startLoadingTimer(AS(cardAddMaxDuration));
 			else
 				win->startLoadingTimer(AS(modalCardAddMaxDuration));
@@ -1441,7 +1565,7 @@ void CardWindow::setVisibleDimensions(int width, int height)
 {
 	if(!m_isResizing && m_flipsQueuedUp) {
 		if (m_data && !isHost() &&
-			(type() != Window::Type_ModalChildWindowCard) && (m_appFixedOrientation == Event::Orientation_Invalid)) {
+            (type() != WindowType::Type_ModalChildWindowCard) && (m_appFixedOrientation == Event::Orientation_Invalid)) {
 			// safeguard code in case the data buffer and the bounding rect dimensions get out of sync
 			bool isDataLandscape = m_data->width() >= m_data->height();
 			bool newDimLandscape = width >= height;
@@ -1478,7 +1602,7 @@ void CardWindow::setVisibleDimensions(int width, int height)
 
 	m_paintPath = QPainterPath();
 
-	if ((m_adjustmentAngle != 90 && m_adjustmentAngle != -90) || this->type() == Window::Type_ModalChildWindowCard) {
+    if ((m_adjustmentAngle != 90 && m_adjustmentAngle != -90) || this->type() == WindowType::Type_ModalChildWindowCard) {
                 m_paintPath.addRoundedRect(boundingRect(), 8, 6); //where you alter the loading rect stuff
 	} else {
 		m_paintPath.addRoundedRect(QRectF(m_boundingRect.y(), m_boundingRect.x(), m_boundingRect.height(), m_boundingRect.width()), 25, 25);
@@ -1555,7 +1679,7 @@ void CardWindow::paintBase(QPainter* painter, bool maximized)
                 initializeRoundedCornerStage();
 
                 // We don't need this for the modal card
-                if(Window::Type_ModalChildWindowCard != type())
+                if(WindowType::Type_ModalChildWindowCard != type())
                     m_roundedCornerShaderStage->setOnPainter(painter);
 
                 painter->setCompositionMode(QPainter::CompositionMode_SourceOver);
@@ -1565,7 +1689,7 @@ void CardWindow::paintBase(QPainter* painter, bool maximized)
                 }
 
                 // If we are modal card and have resized, then our position is not (-w/2, -h/2)
-                if((Window::Type_ModalChildWindowCard != type()) || (Window::Type_ModalChildWindowCard == type() && boundingRect().height() == Settings::LunaSettings()->modalWindowHeight)) {
+                if((WindowType::Type_ModalChildWindowCard != type()) || (WindowType::Type_ModalChildWindowCard == type() && boundingRect().height() == Settings::LunaSettings()->modalWindowHeight)) {
                     if (m_adjustmentAngle == 90 || m_adjustmentAngle == -90) {
                         painter->drawPixmap(-brect.height()/2, -brect.width()/2, *pix);
                     } else {
@@ -1586,7 +1710,7 @@ void CardWindow::paintBase(QPainter* painter, bool maximized)
                 }
 
                 // We don't need this for the modal card
-                if(Window::Type_ModalChildWindowCard != type())
+                if(WindowType::Type_ModalChildWindowCard != type())
                     m_roundedCornerShaderStage->removeFromPainter(painter);
 
             } else {
@@ -1764,7 +1888,7 @@ void CardWindow::setModalChild(CardWindow* w)
 
 void CardWindow::setModalParent(CardWindow* parent)
 {
-	if (Window::Type_ModalChildWindowCard != type() || NULL == parent)
+    if (WindowType::Type_ModalChildWindowCard != type() || NULL == parent)
 		return;
 
 	// Set the parent item for the modal card.
@@ -1776,7 +1900,7 @@ void CardWindow::setModalParent(CardWindow* parent)
 
 QPointF CardWindow::positionModalWindowWrpParent(int spaceAvailableAbove, int windowHeight)
 {
-	if(!m_modalParent || Window::Type_ModalChildWindowCard != type())
+    if(!m_modalParent || WindowType::Type_ModalChildWindowCard != type())
 		return QPointF(0,0);
 
 	// This assumes that we have the entire +ve space and we position the modal accordingly
@@ -2011,7 +2135,7 @@ bool CardWindow::canPositionModalAtY(int yLoc, bool increasePositiveSpace, int& 
 
 void CardWindow::computeModalWindowPlacementInf(int newPosSpace)
 {
-	if (Window::Type_ModalChildWindowCard != type())
+    if (WindowType::Type_ModalChildWindowCard != type())
 		return;
 
 	SystemUiController* sysUi = SystemUiController::instance();
@@ -2162,7 +2286,7 @@ void CardWindow::resizeModalCard()
 }
 
 void CardWindow::positiveSpaceAboutToChange(const QRect& r, bool fullScreen) {
-	if (Window::Type_ModalChildWindowCard != this->type())
+    if (WindowType::Type_ModalChildWindowCard != this->type())
 		updateDirectRenderingPosition();
 	else {
 		m_posSpChangeNotificationState = GotPositiveSpaceAboutToChangeNotification;
@@ -2175,7 +2299,7 @@ void CardWindow::positiveSpaceAboutToChange(const QRect& r, bool fullScreen) {
 }
 
 void CardWindow::positiveSpaceChanged(const QRect& r) {
-	if (Window::Type_ModalChildWindowCard != this->type())
+    if (WindowType::Type_ModalChildWindowCard != this->type())
 		updateDirectRenderingPosition();
 	else {
 
@@ -2213,7 +2337,7 @@ void CardWindow::positiveSpaceChanged(const QRect& r) {
 
 void CardWindow::positiveSpaceChangeFinished(const QRect& r)
 {
-	if (Window::Type_ModalChildWindowCard != this->type())
+    if (WindowType::Type_ModalChildWindowCard != this->type())
 		updateDirectRenderingPosition();
 	else {
 
@@ -2416,7 +2540,7 @@ void CardWindow::initializeRoundedCornerStage()
 	height = m_boundingRect.height();
 
 	if (!m_isResizing && !m_flipsQueuedUp && m_data && !isHost() &&
-		(type() != Window::Type_ModalChildWindowCard) && (m_appFixedOrientation == Event::Orientation_Invalid)) {
+        (type() != WindowType::Type_ModalChildWindowCard) && (m_appFixedOrientation == Event::Orientation_Invalid)) {
 		// safeguard code in case the data buffer and the bounding rect dimensions get out of sync
 		bool isDataLandscape = m_data->width() >= m_data->height();
 		bool isBoundingRectLandscape = m_boundingRect.width() >= m_boundingRect.height();
