@@ -435,10 +435,6 @@ WindowServer::WindowServer()
 	if (!viewportWidget)
 		viewportWidget = new QWidget;
 
-<<<<<<< HEAD
-	QGestureRecognizer::registerRecognizer(new SingleClickGestureRecognizer);
-	QGestureRecognizer::registerRecognizer(new FlickGestureRecognizer);
-=======
     QGestureRecognizer::registerRecognizer(new WebosTapGestureRecognizer);
 
     Qt::GestureType customType = QGestureRecognizer::registerRecognizer(new SingleClickGestureRecognizer);
@@ -447,7 +443,6 @@ WindowServer::WindowServer()
     customType = QGestureRecognizer::registerRecognizer(new WebosTapAndHoldGestureRecognizer);
     WebosTapAndHoldGesture::setGestureType(customType);
 
->>>>>>> c22f1fc9557d970391e010cb7c67b33ba00b57c6
 
 	viewportWidget->setAttribute(Qt::WA_AcceptTouchEvents);
 	viewportWidget->setAttribute(Qt::WA_OpaquePaintEvent, true);
