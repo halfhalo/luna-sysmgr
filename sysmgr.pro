@@ -252,7 +252,7 @@ SOURCES = \
     LsmUtils.cpp \
     WebosTapGestureRecognizer.cpp \
     WebosTapAndHoldGestureRecognizer.cpp \
-    FlickGestureRecognizer.cpp \
+#    FlickGestureRecognizer.cpp \
     ScreenEdgeFlickGestureRecognizer.cpp
 
 
@@ -388,8 +388,8 @@ HEADERS = \
     LsmUtils.h \
     WebosTapGestureRecognizer.h \
     WebosTapAndHoldGestureRecognizer.h \
-    FlickGestureRecognizer.h \
-    FlickGesture.h \
+#    FlickGestureRecognizer.h \
+#    FlickGesture.h \
     ScreenEdgeFlickGesture.h \
     WebosTapAndHoldGesture.h \
     ScreenEdgeFlickGestureRecognizer.h \
