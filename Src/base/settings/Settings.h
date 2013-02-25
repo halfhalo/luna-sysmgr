@@ -29,6 +29,7 @@
 #include <set>
 #include <glib.h>
 #include <QtGlobal>
+#include <QVariant>
 
 class Settings
 {
@@ -66,6 +67,7 @@ public:
 
 	int					cardLimit; // -1 to disable
 	std::set<std::string>	appsToAllowInLowMemory;
+    bool                allowAllAppsInLowMemory;
 
 	bool				showReticle;
 
@@ -284,6 +286,8 @@ public:
 
 
 	void createNeededFolders();
+
+    QVariant getSetting(const QString &key) const;
 
 private:
 	void load(const char* settingsFile);

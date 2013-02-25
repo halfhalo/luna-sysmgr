@@ -19,25 +19,25 @@
 MACHINE_NAME = $$(MACHINE)
 
 contains(MACHINE_NAME, "broadway") {
-	DEFINES += MACHINE_BROADWAY USE_KEYMAPS PALM_DEVICE
+	DEFINES += MACHINE_BROADWAY HAS_KEYMAPS PALM_DEVICE HAS_DISPLAY_TIMEOUT
 	CONFIG_BUILD += opengl texturesharing directrendering
 	CONFIG_BUILD += haptics napp nyx hidlib webosdevice
     LIBS += -lqpalm
 }
 contains(MACHINE_NAME, "mantaray") {
-	DEFINES += MACHINE_MANTARAY USE_KEYMAPS PALM_DEVICE
+	DEFINES += MACHINE_MANTARAY HAS_KEYMAPS PALM_DEVICE HAS_DISPLAY_TIMEOUT
 	CONFIG_BUILD += opengl openglcomposited directrendering
 	CONFIG_BUILD += haptics napp nyx hidlib webosdevice
     LIBS += -lqpalm
 }
 contains(MACHINE_NAME, "windsornot") {
-	DEFINES += MACHINE_WINDSORNOT PALM_DEVICE
+	DEFINES += MACHINE_WINDSORNOT PALM_DEVICE HAS_DISPLAY_TIMEOUT
 	CONFIG_BUILD += opengl openglcomposited directrendering 
 	CONFIG_BUILD +=  nyx napp hidlib webosdevice
     LIBS += -lqpalm
 }
 contains(MACHINE_NAME, "topaz") {
-	DEFINES += MACHINE_TOPAZ PALM_DEVICE
+	DEFINES += MACHINE_TOPAZ PALM_DEVICE HAS_DISPLAY_TIMEOUT
     # DEFINES += ENABLE_JS_DEBUG_VERBOSE
 
 ###### Uncomment the following for debug building, e.g. for source debugging via eclipse, etc. 
@@ -58,8 +58,15 @@ contains(MACHINE_NAME, "topaz") {
     LIBS += -lqpalm
 }
 contains(MACHINE_NAME, "opal") {
-	DEFINES += MACHINE_OPAL PALM_DEVICE
+	DEFINES += MACHINE_OPAL PALM_DEVICE HAS_DISPLAY_TIMEOUT
 	CONFIG_BUILD += opengl texturesharing directrendering
 	CONFIG_BUILD += affinity haptics napp nyx hidlib webosdevice
+    LIBS += -lqpalm
+}
+contains(MACHINE_NAME, "tuna") {
+    DEFINES += MACHINE_TUNA HAS_DISPLAY_TIMEOUT
+    TARGET_TYPE = TARGET_DEVICE
+    CONFIG_BUILD += webosdevice nyx
+    CONFIG_BUILD += opengl
     LIBS += -lqpalm
 }
