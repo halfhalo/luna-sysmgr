@@ -7,9 +7,11 @@ Item {
     property string address:        ""
     property string connStatus:     ""
     property string status:         ""
+    
+    property real uiScale: 1.0
 
-    property int iconSpacing : 4
-    property int rightMarging: 8
+    property int iconSpacing : 16 * uiScale
+    property int rightMarging: 12 * uiScale
 
     Item {
         anchors.fill: parent
@@ -18,11 +20,11 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: name;
             horizontalAlignment: Text.AlignLeft
-            width: parent.width - check.width - rightMarging - iconSpacing - 5
+            width: parent.width - (check.width * (uiScale/4)) - rightMarging - iconSpacing - 5
             elide: Text.ElideRight;
             color: "#FFF";
             font.bold: false;
-            font.pixelSize: 16
+            font.pixelSize: 16 * uiScale
             font.family: "Prelude"
         }
 
@@ -32,7 +34,7 @@ Item {
             y: mainText.y + mainText.baselineOffset + 1
             text: status;
             color: "#AAA";
-            font.pixelSize: 10
+            font.pixelSize: 10 * uiScale
             font.family: "Prelude"
             font.capitalization: Font.AllUppercase
         }
@@ -40,9 +42,10 @@ Item {
 
     Image {
         id: check
-        x: parent.width - width - iconSpacing - rightMarging
+        x: parent.width - (width / 2) - iconSpacing - rightMarging
         anchors.verticalCenter: parent.verticalCenter
         visible: connected
+        scale: uiScale/4
         source: "/usr/palm/sysmgr/images/statusBar/system-menu-popup-item-checkmark.png"
     }
 }

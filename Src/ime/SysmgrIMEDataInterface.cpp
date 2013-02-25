@@ -22,12 +22,19 @@
 #include "SysmgrIMEDataInterface.h"
 #include "HostBase.h"
 #include "IMEController.h"
+#include "Settings.h"
+#include "VirtualKeyboardPreferences.h"
 
 #include "SoundPlayerPool.h"
 #include "SystemUiController.h"
+#include "Localization.h"
+#include "Preferences.h"
+#include "BannerMessageHandler.h"
+#include "BannerMessageEventFactory.h"
 
 #include <QApplication>
 #include <QWidget>
+#include <ime/IMEData.h>
 
 SysmgrIMEModel::SysmgrIMEModel() : m_inputMethod(NULL)
 {
@@ -39,6 +46,56 @@ SysmgrIMEModel::SysmgrIMEModel() : m_inputMethod(NULL)
 void SysmgrIMEModel::setInputMethod(InputMethod * inputMethod)
 {
 	m_inputMethod = inputMethod;
+}
+
+QString SysmgrIMEModel::getLocalizedString(const std::string &str)
+{
+    return fromStdUtf8(LOCALIZED(str));
+}
+
+std::string SysmgrIMEModel::getLocale()
+{
+    return Preferences::instance()->locale();
+}
+
+QVariant SysmgrIMEModel::getLunaSystemSetting(const QString &key)
+{
+    return Settings::LunaSettings()->getSetting(key);
+}
+
+void SysmgrIMEModel::createRemoveBannerMessage(const std::string& appId,
+                                               const std::string& msgId)
+{
+    BannerMessageEvent* e = BannerMessageEventFactory::createRemoveMessageEvent(appId, msgId);
+    BannerMessageHandler::instance()->handleBannerMessageEvent(e);
+
+    delete e;
+}
+
+std::string SysmgrIMEModel::createAddBannerMessage(const std::string& appId,
+                                                   const std::string& msg,
+                                                   const std::string& launchParams,
+                                                   const std::string& icon,
+                                                   const std::string& soundClass,
+                                                   const std::string& soundFile,
+                                                   int duration,
+                                                   bool doNotSuppress)
+{
+    BannerMessageEvent* e = BannerMessageEventFactory::createAddMessageEvent(appId, msg, launchParams, icon, soundClass, soundFile, duration, doNotSuppress);
+    std::string lastMessageID = e->msgId;
+    BannerMessageHandler::instance()->handleBannerMessageEvent(e);
+    delete e;
+    return lastMessageID;
+}
+
+VirtualKeyboardPreferences &SysmgrIMEModel::virtualKeyboardPreferences()
+{
+    return VirtualKeyboardPreferences::instance();
+}
+
+GMainLoop *SysmgrIMEModel::getMainLoop()
+{
+    return HostBase::instance()->mainLoop();
 }
 
 void SysmgrIMEModel::touchEvent(const QTouchEvent& te)
@@ -120,3 +177,74 @@ void SysmgrIMEModel::keyDownAudioFeedback(Qt::Key key)
 		SoundPlayerPool::instance()->playFeedback("key");
 }
 
+void SysmgrIMEModel::applyInitSettings(VirtualKeyboard *ime)
+{
+    VirtualKeyboardPreferences::instance().applyInitSettings(ime);
+}
+
+void SysmgrIMEModel::activateCombo()
+{
+    VirtualKeyboardPreferences::instance().activateCombo();
+}
+
+void SysmgrIMEModel::selectKeyboardCombo(int index)
+{
+    VirtualKeyboardPreferences::instance().selectKeyboardCombo(index);
+}
+
+void SysmgrIMEModel::selectLayoutCombo(const char *layoutName)
+{
+    VirtualKeyboardPreferences::instance().selectLayoutCombo(layoutName);
+}
+
+void SysmgrIMEModel::selectNextKeyboardCombo()
+{
+    VirtualKeyboardPreferences::instance().selectNextKeyboardCombo();
+}
+
+void SysmgrIMEModel::createDefaultKeyboards()
+{
+    VirtualKeyboardPreferences::instance().createDefaultKeyboards();
+}
+
+void SysmgrIMEModel::clearDefaultDeyboards()
+{
+    VirtualKeyboardPreferences::instance().clearDefaultDeyboards();
+}
+
+void SysmgrIMEModel::toggleTapSounds()
+{
+    VirtualKeyboardPreferences::instance().setTapSounds(!VirtualKeyboardPreferences::instance().getTapSounds());
+}
+
+bool SysmgrIMEModel::getTapSounds() const
+{
+    return VirtualKeyboardPreferences::instance().getTapSounds();
+}
+
+int SysmgrIMEModel::getKeyboardComboCount() const
+{
+    return VirtualKeyboardPreferences::instance().getKeyboardComboCount();
+}
+
+bool SysmgrIMEModel::getSpaces2period() const
+{
+    return VirtualKeyboardPreferences::instance().getSpaces2period();
+}
+
+void SysmgrIMEModel::selectKeyboardSize(int size)
+{
+    VirtualKeyboardPreferences::instance().selectKeyboardSize(size);
+}
+
+const char *SysmgrIMEModel::getLanguageFromKeyboardCombo(int index)
+{
+    VirtualKeyboardPreferences &prefs = VirtualKeyboardPreferences::instance();
+    return prefs.getkeyboardCombo(index).language.c_str();
+}
+
+const char *SysmgrIMEModel::getLayoutFromKeyboardCombo(int index)
+{
+    VirtualKeyboardPreferences &prefs = VirtualKeyboardPreferences::instance();
+    return prefs.getkeyboardCombo(index).layout.c_str();
+}

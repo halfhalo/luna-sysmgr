@@ -72,7 +72,7 @@ public:
 	void fadeWindow (bool in);
 
 	bool handleFilteredSceneEvent(QEvent* event);
-	
+
 	bool okToResize();
 	void resize(int width, int height);
 	void delayDockModeLocking();
@@ -190,7 +190,7 @@ private:
 
 //	void showPhoneApp();
 //	void hidePhoneApp(bool animate = true);
-	
+
 //	void toggleElemetsVisibleUnderPhoneApp(bool visible);
 
 	void showAlert(TransparentNode* alertNode);
@@ -206,9 +206,9 @@ private:
 	bool m_bannerActive;
 	bool m_activeCall;
 	State m_state;
-	
+
 	bool m_elementsShown;
-	
+
 	bool m_delayDockModeLocking;
 
 	int m_lockButtonX, m_lockButtonY;
@@ -223,7 +223,7 @@ private:
 	HelpWindow* m_helpWin;
 	LockButton* m_lockButton;
 	ClockWindow* m_clockWin;
-	
+
 //	int m_phoneAppShownY, m_phoneAppHiddenY;
 
 	DashboardAlerts* m_dashboardAlerts;
@@ -233,7 +233,7 @@ private:
 	GraphicsItemContainer* m_cornerContainer;
 	QGraphicsPixmapItem* m_corners[4];
 	void positionCornerWindows(const QRect& r);
-	
+
 	bool bannerViewRegistered;
 
 //	CardWindow* m_phoneAppWin;
@@ -251,5 +251,4 @@ private:
 	QRect m_targetPositiveSpace;
 };
 
-#endif
-
+#endif /* LOCKWINDOW_H */

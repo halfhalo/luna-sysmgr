@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <string.h>          
+#include <string.h>
 #include <linux/fb.h>
 #include <linux/kd.h>
 #include <linux/input.h> 
@@ -49,6 +49,8 @@
 #include <QApplication>
 #include <qsocketnotifier.h>
 
+#include <cjson/json.h>
+
 #include "CustomEvents.h"
 #include "Time.h"
 #include "HostBase.h"
@@ -60,8 +62,10 @@
 #include "Logging.h"
 #include "SystemUiController.h"
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_HIDLIB)
 #include "HidLib.h"
+// TODO: these should come from hidd headers
+#define MAX_HIDD_EVENTS 100
 #endif
 
 #define HOSTARM_LOG	"HostArm"
@@ -70,17 +74,16 @@
 #define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
 #endif
 
-// TODO: these should come from hidd headers
-#define MAX_HIDD_EVENTS 100 
 
-#if defined(TARGET_DEVICE)
-//TODO: Move me to a header!
+
+#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+// From the Palm QPA
 extern "C" void setTransform(QTransform*);
 extern "C" InputControl* getTouchpanel(void);
 extern "C" void setBluetoothCallback(void (*fun)(bool));
 #endif
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_QPA) && defined(TARGET_DEVICE)
 static void bluetoothCallback(bool enable)
 {
     HostBase::instance()->setBluetoothKeyboardActive(enable);
@@ -90,7 +93,7 @@ static void bluetoothCallback(bool enable)
 HostArm::HostArm() :
       m_nyxLightNotifier(NULL)
 	, m_nyxProxNotifier(NULL)
-#if defined(TARGET_DEVICE)
+#if defined(HAS_HIDLIB)
 	, m_hwRev(HidHardwareRevisionEVT1)
 	, m_hwPlatform (HidHardwarePlatformCastle)
 #endif
@@ -99,7 +102,7 @@ HostArm::HostArm() :
 	, m_fb0Buffer(0)
 	, m_fb0NumBuffers(0)
 	, m_fb1Buffer(0)
-	, m_fb1NumBuffers(1)
+	, m_fb1NumBuffers(0)
 	, m_service(NULL)
 	, m_nyxInputControlALS(0)
 	, m_nyxInputControlBluetoothInputDetect(0)
@@ -110,9 +113,11 @@ HostArm::HostArm() :
     , m_bluetoothKeyboardActive(false)
     , m_OrientationSensor(0)
 {
-#if defined(TARGET_DEVICE)
+#if defined(HAS_HIDLIB)
 	m_hwRev = HidGetHardwareRevision();
 	m_hwPlatform = HidGetHardwarePlatform();
+#endif
+#if defined(HAS_QPA) && defined(TARGET_DEVICE)
 	setBluetoothCallback(&bluetoothCallback);
 #endif
 }
@@ -121,6 +126,12 @@ HostArm::~HostArm()
 {
 	stopService();
 	shutdownInput();
+
+	if (m_fb0Fd > 0)
+		close(m_fb0Fd);
+
+	if (m_fb1Fd > 0)
+		close(m_fb1Fd);
 
 	nyx_deinit();
 }
@@ -170,7 +181,7 @@ void HostArm::init(int w, int h)
 
 	m_fb0Buffer = ::mmap(0, fixinfo.smem_len, PROT_READ, MAP_SHARED, m_fb0Fd, 0);
 	if (m_fb0Buffer == MAP_FAILED) {
-		g_warning("Failed to map fb1 buffer: %s", strerror(errno));
+		g_warning("Failed to map fb0 buffer: %s", strerror(errno));
 		m_fb0Buffer = 0;
 		return;
 	}
@@ -184,7 +195,7 @@ void HostArm::init(int w, int h)
 	m_fb1Fd = open("/dev/fb1", O_RDWR, 0);
 	if (m_fb1Fd < 0) {
 		g_warning("Failed to open layer 1: %s", strerror(errno));
-		return;
+		goto finish;
 	}
 
 #if defined(FB1_POWER_OPTIMIZATION)
@@ -215,8 +226,10 @@ void HostArm::init(int w, int h)
 	rowBytes = varinfo.xres * (bpp >> 3);
 	m_fb1NumBuffers = fixinfo.smem_len / (rowBytes * varinfo.yres);
 
+finish:
 	printf("Linux Fb0: Num Buffers: %d, Fb1: Num Buffers: %d\n", m_fb0NumBuffers, m_fb1NumBuffers);
-#ifdef TARGET_DEVICE
+#if defined(HAS_QPA) && defined(TARGET_DEVICE)
+// From the Palm QPA
 	setTransform(&m_trans);
 #endif
 }
@@ -506,7 +519,7 @@ void HostArm::show()
     disableScreenBlanking();
     startService();
     setupInput();
-#if defined(TARGET_DEVICE)
+#if defined(HAS_HIDLIB)
 	getInitialSwitchStates();
 #endif
 }
@@ -538,7 +551,7 @@ bool HostArm::getMsgValueInt(LSMessage* msg, int& value)
 }
 
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_HIDLIB)
 bool HostArm::switchStateCallback(LSHandle* handle, LSMessage* msg, void* data)
 {
 	int switchCode = (int)data;
@@ -775,7 +788,7 @@ InputControl* HostArm::getInputControlTouchpanel()
 {
     if (m_nyxInputControlTouchpanel)
         return m_nyxInputControlTouchpanel;
-#if defined(TARGET_DEVICE)
+#if defined(HAS_QPA) && defined(TARGET_DEVICE)
     m_nyxInputControlTouchpanel = getTouchpanel();
 #endif
     if (!m_nyxInputControlTouchpanel)

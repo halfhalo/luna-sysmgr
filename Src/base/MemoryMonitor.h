@@ -31,7 +31,7 @@
 #include "Timer.h"
 #include "Mutex.h"
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 extern "C" {
 #include <memchute.h>
 }
@@ -75,8 +75,10 @@ private:
 	int getCurrentRssUsage() const;
 
 	int getProcessMemInfo(pid_t pid);
-	
-#if defined(TARGET_DEVICE)
+
+	void adjustOomScore();
+
+#if defined(HAS_MEMCHUTE)
     static void memchuteCallback(MemchuteThreshold threshold);
 	void memchuteStateChanged();
     int getMonitoredProcessesMemoryOffset();
@@ -93,7 +95,7 @@ private:
 
 	MemState m_state;	
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 	MemchuteWatcher* m_memWatch;
 	
 	typedef struct 

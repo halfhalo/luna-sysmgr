@@ -24,16 +24,19 @@
 
 #include <QStringList>
 
-#include "IMEDataInterface.h"
+#include <IMEDataInterface.h>
 
 class IMEManager
 {
 public:
-	IMEManager();
+    IMEManager();
 
-	QStringList availableIMEs() const;
-	IMEDataInterface * createIME(const QString& key);
-	IMEDataInterface * createPreferredIME(int maxWidth, int maxHeight);
+    QStringList availableIMEs() const;
+    IMEDataInterface *createIME(const QString &key);
+    IMEDataInterface *createPreferredIME(int maxWidth,
+                                         int maxHeight,
+                                         int dpi,
+                                         const std::string locale);
 };
 
 #endif

@@ -127,7 +127,6 @@ SOURCES = \
 	MallocHooks.cpp \
 	Mutex.cpp \
 	TaskBase.cpp \
-	SyncTask.cpp \
 	CpuAffinity.cpp \
 	HostBase.cpp \
 	KeywordMap.cpp \
@@ -139,8 +138,6 @@ SOURCES = \
 	ApplicationManager.cpp \
 	CmdResourceHandlers.cpp \
 	ApplicationManagerService.cpp \
-	BackupManager.cpp \
-	WebKitEventListener.cpp \
 	ApplicationInstaller.cpp \
 	WindowManagerBase.cpp \
 	WindowServer.cpp \
@@ -150,26 +147,14 @@ SOURCES = \
 	WindowServerMinimal.cpp \
 	WindowManagerMinimal.cpp \
 	MetaKeyManager.cpp \
-	WebAppCache.cpp \
-	WebAppBase.cpp \
-	WindowedWebApp.cpp \
-	AlertWebApp.cpp \
-	CardWebApp.cpp \
-	DashboardWebApp.cpp \
-	WebAppFactory.cpp \
-	WebAppFactoryLuna.cpp \
-	WebAppFactoryMinimal.cpp \
 	SingletonTimer.cpp \
 	Timer.cpp \
-	WebAppManager.cpp \
-	WebAppDeferredUpdateHandler.cpp \
 	Settings.cpp \
 	DisplayManager.cpp \
 	DisplayStates.cpp \
 	AmbientLightSensor.cpp \
 	InputManager.cpp \
 	EventReporter.cpp \
-	ProcessManager.cpp \
 	SystemUiController.cpp \
 	BannerMessageHandler.cpp \
 	Logging.cpp \
@@ -188,7 +173,6 @@ SOURCES = \
 	RoundedCorners.cpp \
 	CoreNaviManager.cpp \
 	CoreNaviLeds.cpp \
-	MemoryWatcher.cpp \
 	Localization.cpp \
 	DeviceInfo.cpp \
 	Security.cpp \
@@ -206,7 +190,6 @@ SOURCES = \
 	HostWindow.cpp \
 	HostWindowData.cpp \
 	HostWindowDataSoftware.cpp \
-	RemoteWindowData.cpp \
 	AlertWindow.cpp \
 	CardWindow.cpp \
 	DashboardWindow.cpp \
@@ -233,7 +216,6 @@ SOURCES = \
 	LockWindow.cpp \
 	DockModeWindowManager.cpp \
 	DockModeWindow.cpp \
-	DockWebApp.cpp \
 	DockModeLaunchPoint.cpp \
 	DockModePositionManager.cpp \
 	DockModeAppMenuContainer.cpp \
@@ -242,8 +224,8 @@ SOURCES = \
 	CardDropShadowEffect.cpp \
 #	WebKitKeyMap.cpp \
 	CardGroup.cpp \
-	KeyboardMapping.cpp \
 	SingleClickGestureRecognizer.cpp \
+	FlickGestureRecognizer.cpp \
 #	BootupAnimation.cpp \
 	ProgressAnimation.cpp \
 	CardHostWindow.cpp \
@@ -261,35 +243,24 @@ SOURCES = \
 	StatusBarItemGroup.cpp \
 	StatusBarNotificationArea.cpp \
 	SystemMenu.cpp \
+	GestureArea.cpp \
 	BtDeviceClass.cpp \
 	IMEManager.cpp \
-	TabletKeyboard.cpp \
-	PhoneKeyboard.cpp \
 	InputWindowManager.cpp \
 	IMEView.cpp \ 
 	SysmgrIMEDataInterface.cpp \
 	IMEController.cpp \
-	IMEPixmap.cpp \
-	TabletKeymap.cpp \
-	PhoneKeymap.cpp \
 	KeyLocationRecorder.cpp \
     VirtualKeyboardPreferences.cpp \
     JSONUtils.cpp \
     GhostCard.cpp \
     WSOverlayScreenShotAnimation.cpp \
-	VirtualKeyboard.cpp \
-	GlyphCache.cpp \
-	CandidateBar.cpp \
-	CandidateBarRemote.cpp \
-	PalmIMEHelpers.cpp \
     InputClient.cpp \
 	QmlAlertWindow.cpp \
-    ShortcutsHandler.cpp \
     QtHostWindow.cpp \
     UiNavigationController.cpp \
-    SysMgrWebBridge.cpp \
-    PalmSystem.cpp \
-    NyxSensorConnector.cpp
+    NyxSensorConnector.cpp \
+    BackupManager.cpp 
 #    WebKitSensorConnector.cpp
 
 HEADERS = \
@@ -300,11 +271,9 @@ HEADERS = \
 	ApplicationInstaller.h \
 	ApplicationManager.h \
 	ApplicationStatus.h \
-	BackupManager.h \
 	CmdResourceHandlers.h \
 	CoreNaviLeds.h \
 	CoreNaviManager.h \
-	Debug.h \
 	DeviceInfo.h \
 	DisplayManager.h \
 	DisplayStates.h \
@@ -317,7 +286,6 @@ HEADERS = \
 	HostWindow.h \
 	HostWindowData.h \
 	HostWindowDataSoftware.h \
-	RemoteWindowData.h \
 	InputManager.h \
 	LaunchPoint.h \
 	Localization.h \
@@ -325,7 +293,6 @@ HEADERS = \
 	MetaKeyManager.h \
 	MimeSystem.h \
 	Preferences.h \
-	ProcessManager.h \
 	RoundedCorners.h \
 	Security.h \
 	Settings.h \
@@ -333,7 +300,6 @@ HEADERS = \
 	SystemService.h \
 	SystemUiController.h \
 	Utils.h \
-	WebKitEventListener.h \
 	Window.h \
 	WindowManagerBase.h \
 	WindowServer.h \
@@ -348,26 +314,19 @@ HEADERS = \
 	PtrArray.h \
 	SingletonTimer.h \
 	sptr.h \
-	SyncTask.h \
 	TaskBase.h \
 	Time.h \
 	Timer.h \
 #	JsSysObjectAnimationRunner.h \
 	JsUtil.h \
 	ActiveCallBanner.h \
-	AlertWebApp.h \
 	BannerMessageEventFactory.h \
 	BannerMessageHandler.h \
-	CardWebApp.h \
-	DashboardWebApp.h \
 	FullEraseConfirmationWindow.h \
-	NewContentIndicatorEventFactory.h \
 	NotificationPolicy.h \
 	PersistentWindowCache.h \
-	WebAppFactoryLuna.h \
 #	WindowContentTransitionRunner.h \
 	WindowServerLuna.h \
-	WebAppFactoryMinimal.h \
 	WindowManagerMinimal.h \
 	WindowServerMinimal.h \
 	IpcClientHost.h \
@@ -375,13 +334,6 @@ HEADERS = \
 	WebAppMgrProxy.h \
 	SoundPlayer.h \
 	SoundPlayerPool.h \
-	MemoryWatcher.h \
-	ProcessBase.h \
-	WebAppBase.h \
-	WebAppFactory.h \
-	WebAppManager.h \
-	WebAppCache.h \
-	WindowedWebApp.h \
 	AlertWindow.h \
 	CardWindow.h \
 	DashboardWindow.h \
@@ -409,7 +361,6 @@ HEADERS = \
 	LockWindow.h \
 	DockModeWindowManager.h \
 	DockModeWindow.h \
-	DockWebApp.h \
 	DockModeLaunchPoint.h \
 	DockModePositionManager.h \
 	DockModeAppMenuContainer.h \
@@ -418,9 +369,10 @@ HEADERS = \
 	CardDropShadowEffect.h \
 #	WebKitKeyMap.h \
 	CardGroup.h \
-	KeyboardMapping.h \
 	SingleClickGestureRecognizer.h \
 	SingleClickGesture.h \
+	FlickGestureRecognizer.h \
+	FlickGesture.h \
 #	BootupAnimation.h \
 	ProgressAnimation.h \
 	CardHostWindow.h \
@@ -439,43 +391,28 @@ HEADERS = \
 	StatusBarItemGroup.h \
 	StatusBarNotificationArea.h \
 	SystemMenu.h \
+	GestureArea.h \
 	BtDeviceClass.h \
 	IMEManager.h \
-	InputMethod.h \
-	TabletKeyboard.h \
-	PhoneKeyboard.h \
 	InputWindowManager.h \
 	IMEView.h \
-	IMEData.h_generator.h \
-	IMEData.h \
 	SysmgrIMEDataInterface.h \
-	IMEDataInterface.h \
 	IMEController.h \
-	IMEPixmap.h \
-	TabletKeymap.h \
-	PhoneKeymap.h \
 	KeyLocationRecorder.h \
     VirtualKeyboardPreferences.h \
     JSONUtils.h \
     GhostCard.h \
     WSOverlayScreenShotAnimation.h \
-	VirtualKeyboard.h \
-	GlyphCache.h \
-	CandidateBar.h \
-	CandidateBarRemote.h \
-	PalmIMEHelpers.h \
     InputClient.h \
     QmlInputItem.h \
     CardSmoothEdgeShaderStage.h \
     CardRoundedCornerShaderStage.h \
 	QmlAlertWindow.h \
-    ShortcutsHandler.h \
     QtHostWindow.h \
     UiNavigationController.h \
-    SysMgrWebBridge.h \
-    PalmSystem.h \
     NyxSensorCommonTypes.h \
-    NyxSensorConnector.h
+    NyxSensorConnector.h \
+    BackupManager.h
 #    WebKitSensorConnector.h
 
 ####### LAUNCHER ADDITIONS ########
@@ -655,7 +592,7 @@ QMAKE_CXXFLAGS += -DFIX_FOR_QT
 # Override the default (-Wall -W) from g++.conf mkspec (see linux-g++.conf)
 QMAKE_CXXFLAGS_WARN_ON += -Wno-unused-parameter -Wno-unused-variable -Wno-reorder -Wno-missing-field-initializers -Wno-extra
 
-LIBS += -lcjson -lLunaSysMgrIpc -llunaservice -lpbnjson_cpp -lssl -lsqlite3 -lssl -lcrypto -lnyx
+LIBS += -lcjson -lLunaSysMgrIpc -lluna-service2 -lpbnjson_cpp -lssl -lsqlite3 -lssl -lcrypto -lnyx
 
 linux-g++ {
     include(desktop.pri)
@@ -675,6 +612,8 @@ linux-g++ {
     }
 }
 
+HEADERS += $${STAGING_INCLUDE_DIR}/ime/IMEData.h \
+    $${STAGING_INCLUDE_DIR}/ime/IMEDataInterface.h
 
 contains(CONFIG_BUILD, opengl) {
 	QT += opengl
@@ -683,40 +622,21 @@ contains(CONFIG_BUILD, opengl) {
 
 	contains(CONFIG_BUILD, texturesharing) {
 		DEFINES += HAVE_TEXTURESHARING OPENGLCOMPOSITED
-		SOURCES += HostWindowDataOpenGLTextureShared.cpp 
-					RemoteWindowDataSoftwareTextureShared.cpp \
-					RemoteWindowDataSoftwareQt.cpp \
-					RemoteWindowDataSoftwareOpenGLComposited.cpp 
-		HEADERS += HostWindowDataOpenGLTextureShared.h 
-					RemoteWindowDataSoftwareTextureShared.h \
-					RemoteWindowDataSoftwareQt.h \
-					RemoteWindowDataSoftwareOpenGLComposited.h \
-					NAppWindow.h
+		SOURCES += HostWindowDataOpenGLTextureShared.cpp
+		HEADERS += HostWindowDataOpenGLTextureShared.h
                 #LIBS += -lnapp -lnrwindow
 	} else {
 		contains(CONFIG_BUILD, openglcomposited) {
 			DEFINES += OPENGLCOMPOSITED
-			SOURCES += RemoteWindowDataSoftwareOpenGLComposited.cpp
-			HEADERS += RemoteWindowDataSoftwareOpenGLComposited.h \
-						NAppWindow.h
 		}
 	
-   		SOURCES += HostWindowDataOpenGL.cpp \
-	    			RemoteWindowDataSoftwareQt.cpp \
-                                RemoteWindowDataOpenGLQt.cpp
+   		SOURCES += HostWindowDataOpenGL.cpp
 
-   		HEADERS += HostWindowDataOpenGL.h \
-	    			RemoteWindowDataSoftwareQt.h \
-                                RemoteWindowDataOpenGLQt.h
-
-#    				RemoteWindowDataOpenGL.h \
-#    				RemoteWindowDataOpenGL.cpp \
+   		HEADERS += HostWindowDataOpenGL.h
 	}
 }
 else {
 	DEFINES += P_BACKEND=P_BACKEND_SOFT
-	SOURCES += RemoteWindowDataSoftwareQt.cpp
-	HEADERS += RemoteWindowDataSoftwareQt.h
 }
 
 contains(CONFIG_BUILD, fb1poweroptimization) {
@@ -729,6 +649,49 @@ contains(CONFIG_BUILD, directrendering) {
 
 contains(CONFIG_BUILD, haptics) {
 	DEFINES += HAPTICS=1
+}
+
+contains(CONFIG_BUILD, mediaapi) {
+    SOURCES += SoundPlayer.cpp
+    HEADERS += SoundPlayer.h
+    LIBS += -lmedia-api
+    DEFINES += HAS_MEDIA_API
+} else {
+    SOURCES += SoundPlayerDummy.cpp
+    HEADERS += SoundPlayerDummy.h
+}
+
+contains(CONFIG_BUILD, nyx) {
+    HEADERS +=  NyxInputControl.h \
+                NyxLedControl.h \
+
+    VPATH += Src/input
+
+    SOURCES += NyxInputControl.cpp \
+           NyxLedControl.cpp \
+
+    DEFINES += HAS_NYX
+}
+
+contains(CONFIG_BUILD, memchute) {
+    LIBS += -lmemchute
+    DEFINES += HAS_MEMCHUTE
+}
+
+contains(CONFIG_BUILD, hidlib) {
+    INCLUDEPATH += $$(STAGING_INCDIR)/hid/IncsPublic
+    LIBS += -lhid
+    DEFINES += HAS_HIDLIB
+}
+
+contains(CONFIG_BUILD, affinity) {
+    LIBS += -laffinity
+    DEFINES += HAS_AFFINITY
+}
+
+contains(CONFIG_BUILD, napp) {
+    INCLUDEPATH += $$(STAGING_INCDIR)/napp
+    DEFINES += HAS_NAPP
 }
 
 DESTDIR = ./$${BUILD_TYPE}-$${MACHINE_NAME}

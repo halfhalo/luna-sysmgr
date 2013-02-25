@@ -70,6 +70,8 @@
 #include "gfxsettings.h"
 #include "layoutsettings.h"
 
+#include "Settings.h"
+
 #include <glib.h>
 
 static const int kSlopFactorForClicks = 4;
@@ -77,7 +79,6 @@ static const int kSlopFactorForClicks = 4;
 static const double kDragAnimFactorNumer = 1.0;
 static const double kDragAnimFactorDenom = 1.8;
 static const double kDragScaleFactor = 1.2;
-static const int kMaxDragSide = 64; // clamp the drag image to 128x128
 
 static const char *kOverlayState = "overlayViewState";
 
@@ -333,9 +334,12 @@ void OverlayWindowManager::setupDockStateMachine()
 
 	// noDock ---> NormalDock [Trigger: signalFSMShowDock]
 	transition = m_dockStates->noDock->addTransition(this, SIGNAL(signalFSMShowDock()), m_dockStates->dockNormal);
-
-	// noDock ---> NormalDock [Trigger: signalFSMShowLauncher]
-	transition = m_dockStates->noDock->addTransition(this, SIGNAL(signalFSMShowLauncher()), m_dockStates->dockNormal);
+	
+	if(Settings::LunaSettings()->tabletUi)
+	{
+		// noDock ---> NormalDock [Trigger: signalFSMShowLauncher]
+		transition = m_dockStates->noDock->addTransition(this, SIGNAL(signalFSMShowLauncher()), m_dockStates->dockNormal);
+	}
 
 	// noDock ---> DockReorder  [Trigger: signalFSMDragStarted]
 	transition = m_dockStates->noDock->addTransition(this, SIGNAL(signalFSMDragStarted()), m_dockStates->dockReorder);
@@ -352,7 +356,7 @@ void OverlayWindowManager::setupDockStateMachine()
 
 	// NormalDock ---> noDock  [Trigger: signalHideDock]
 	transition = m_dockStates->dockNormal->addTransition(this, SIGNAL(signalFSMHideDock()), m_dockStates->noDock);
-
+	
 	// NormalDock ---> noDock  [Trigger: signalCardWindowAdded]
 	transition = m_dockStates->dockNormal->addTransition(uiController, SIGNAL(signalCardWindowAdded()), m_dockStates->noDock);
 
@@ -1026,17 +1030,30 @@ void OverlayWindowManager::setupSearchPill()
 {
 
 	PixmapObject * pNormalBgPmo = (PixmapObject *)PixmapObjectLoader::instance()->quickLoadThreeHorizTiled(
+			90,
+			50 * Settings::LunaSettings()->layoutScale,
 			QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + SEARCHPILL_BACKGROUND_FILEPATH),
-			40,40
+			40 * Settings::LunaSettings()->layoutScale, 40 * Settings::LunaSettings()->layoutScale
 	);
 
 	if (pNormalBgPmo)
 	{
 		PixmapObject * pIconPmo = PixmapObjectLoader::instance()->quickLoad(
-				QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + SEARCHPILL_ICON_FILEPATH)
+				QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + SEARCHPILL_ICON_FILEPATH),
+				QSize(32 * Settings::LunaSettings()->layoutScale, 32 * Settings::LunaSettings()->layoutScale),
+				false
 		);
+		
+		quint32 width;
 
-		quint32 width = qMax(LayoutSettings::settings()->searchPillWidth,(quint32)(pIconPmo ? pIconPmo->width() : 0));
+		//If we're in tabletUi, use the search pill width value from LayoutSettings
+		
+		if(Settings::LunaSettings()->tabletUi)
+			width = LayoutSettings::settings()->searchPillWidthPctScreenRelative * qMin(boundingRect().height(), boundingRect().width());
+		//Otherwise, set it to 0.975% of the screen width, webOS phone style
+		else
+			width = 0.975 * qMin(boundingRect().height(), boundingRect().width());
+
 		quint32 height = pNormalBgPmo->height();
 		QRectF pillGeom = DimensionsGlobal::realRectAroundRealPoint(QSize(width - (width %2),height - (height %2)));
 		m_searchPill = new SearchPill(pNormalBgPmo, pIconPmo, pillGeom,this);
@@ -1098,11 +1115,15 @@ void OverlayWindowManager::slotSystemAPIToggleLauncher()
 	{
 		//it's down...signal that I want it up
 		Q_EMIT signalFSMShowLauncher();
+		if(!Settings::LunaSettings()->tabletUi)
+			Q_EMIT signalFSMHideDock();
 	}
 	else
 	{
 		//it's up, signal that I want it down
 		Q_EMIT signalFSMHideLauncher();
+		if(!Settings::LunaSettings()->tabletUi)
+			Q_EMIT signalFSMShowDock();
 	}
 }
 
@@ -1151,6 +1172,19 @@ void OverlayWindowManager::slotLauncherReady()
 void OverlayWindowManager::slotLauncherNotReady()
 {
 	//TODO: IMPLEMENT
+}
+
+void OverlayWindowManager::slotPagesStartReorderMode()
+{
+	if(!Settings::LunaSettings()->tabletUi)
+		Q_EMIT signalFSMShowDock();
+}
+
+void OverlayWindowManager::slotPagesEndReorderMode()
+{
+	//Only fire if the launcher is up
+	if(!Settings::LunaSettings()->tabletUi && m_launcherState == StateLauncherRegular)
+		Q_EMIT signalFSMHideDock();
 }
 
 void OverlayWindowManager::slotQuickLaunchReady()
@@ -1604,6 +1638,11 @@ bool OverlayWindowManager::setupLauncher()
 				this,SLOT(slotLauncherReady()));
 	connect(pLauncher,SIGNAL(signalNotReady()),
 				this,SLOT(slotLauncherNotReady()));
+				
+	connect(pLauncher, SIGNAL(signalPagesStartReorderMode()),
+				this,SLOT(slotPagesStartReorderMode()));
+	connect(pLauncher, SIGNAL(signalPagesEndReorderMode()),
+				this,SLOT(slotPagesEndReorderMode()));
 
 	connect(pLauncher,SIGNAL(signalShowMe(DimensionsTypes::ShowCause::Enum)),
 			this, SLOT(slotLauncherRequestShowDimensionsLauncher(DimensionsTypes::ShowCause::Enum)));

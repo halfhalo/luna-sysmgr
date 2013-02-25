@@ -22,13 +22,14 @@
 #include "Common.h"
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fstream>
 #include <strings.h>
 
 
 #include "MemoryMonitor.h"
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 #include "IpcServer.h"
 #endif
 
@@ -51,6 +52,12 @@ static const std::string sMBLabel("mb");
 static const std::string sProcRSS("VmRSS");
 static const std::string sProcSwap("VmSwap");
 
+#define OOM_ADJ_PATH			"/proc/%d/oom_adj"
+#define OOM_SCORE_ADJ_PATH		"/proc/%d/oom_score_adj"
+
+#define OOM_ADJ_VALUE			-17
+#define OOM_SCORE_ADJ_VALUE		-1000
+
 MemoryMonitor* MemoryMonitor::instance()
 {
 	static MemoryMonitor* s_instance = 0;
@@ -68,19 +75,41 @@ MemoryMonitor::MemoryMonitor()
 	m_fileName[kFileNameLen - 1] = 0;
 	snprintf(m_fileName, kFileNameLen - 1, "/proc/%d/statm", getpid());
 
-	char oom_adj[kFileNameLen];
-	snprintf(oom_adj, kFileNameLen - 1, "/proc/%d/oom_adj", getpid());
-	FILE* f = fopen(oom_adj, "wb");
-	if (f) {
-		size_t result = fwrite("-17\n", 4, 1, f);
-		(void)result;
-
-		fclose(f);	
-	}
+	/* Adjust OOM killer so we're never killed for memory reasons */
+	adjustOomScore();
 }
 
 MemoryMonitor::~MemoryMonitor()
-{    
+{
+}
+
+void MemoryMonitor::adjustOomScore()
+{
+	struct stat st;
+	int score_value = 0;
+
+	/* Adjust OOM killer so we're never killed for memory reasons */
+	char oom_adj_path[kFileNameLen];
+	snprintf(oom_adj_path, kFileNameLen - 1, OOM_SCORE_ADJ_PATH, getpid());
+	if (stat(oom_adj_path, &st) == -1) {
+		snprintf(oom_adj_path, kFileNameLen - 1, OOM_ADJ_PATH, getpid());
+		if (stat(oom_adj_path, &st) == -1) {
+			g_warning("Failed to adjust OOM value");
+			return;
+		}
+		else {
+			score_value = OOM_ADJ_VALUE;
+		}
+	}
+	else {
+		score_value = OOM_SCORE_ADJ_VALUE;
+	}
+
+	FILE* f = fopen(oom_adj_path, "wb");
+	if (f) {
+		fprintf(f, "%i\n", score_value);
+		fclose(f);
+	}
 }
 
 void MemoryMonitor::start()
@@ -90,7 +119,7 @@ void MemoryMonitor::start()
 	
 	m_timer.start(kTimerMs);
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 	m_memWatch = MemchuteWatcherNew(MemoryMonitor::memchuteCallback);
 	if (m_memWatch != NULL) {
 		MemchuteGmainAttach(m_memWatch, HostBase::instance()->mainLoop());
@@ -98,7 +127,7 @@ void MemoryMonitor::start()
 	} else {
 		g_warning("Failed to create MemchuteWatcher");
 	}
-#endif	    
+#endif
 }
 
 static const char* nameForState(MemoryMonitor::MemState state)
@@ -119,7 +148,7 @@ static const char* nameForState(MemoryMonitor::MemState state)
 
 bool MemoryMonitor::timerTicked()
 {
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 	if (!memRestrict.empty())
 		checkMonitoredProcesses();
 #endif
@@ -133,7 +162,7 @@ bool MemoryMonitor::timerTicked()
 	g_warning("SysMgr MemoryMonitor: LOW MEMORY: State: %s, current RSS usage: %dMB\n",
 			  nameForState(m_state), m_currRssUsage);
 
-	return true;    
+	return true;
 }
 
 int MemoryMonitor::getCurrentRssUsage() const
@@ -312,7 +341,7 @@ int MemoryMonitor::getProcessMemInfo(pid_t pid)
 
 void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid_t updateFromPid)
 {
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 	if(updateFromPid > 0){
 		// updating an existing monitor, so find it and remove it first
 		ProcMemRestrictions::iterator old = memRestrict.find(updateFromPid);
@@ -338,7 +367,7 @@ void MemoryMonitor::monitorNativeProcessMemory(pid_t pid, int maxMemAllowed, pid
 #endif
 }
 
-#if defined(TARGET_DEVICE)
+#if defined(HAS_MEMCHUTE)
 int MemoryMonitor::getMonitoredProcessesMemoryOffset()
 {
 	int offset = 0;	
@@ -433,7 +462,7 @@ bool MemoryMonitor::allowNewNativeAppLaunch(int appMemoryRequirement)
 		return false;
 	}
 	
-#if defined(TARGET_DEVICE)  
+#if defined(HAS_MEMCHUTE)
 	int lowMemoryEntryRem, criticalMemoryEntryRem, rebootMemoryEntryRem;
 	getMemInfo(lowMemoryEntryRem, criticalMemoryEntryRem, rebootMemoryEntryRem);
 
@@ -451,7 +480,7 @@ bool MemoryMonitor::allowNewNativeAppLaunch(int appMemoryRequirement)
 	return true;
 }
 
-#if defined(TARGET_DEVICE)    
+#if defined(HAS_MEMCHUTE)
 void MemoryMonitor::memchuteCallback(MemchuteThreshold threshold)
 {
 	MemoryMonitor* mw = MemoryMonitor::instance();	

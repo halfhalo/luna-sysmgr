@@ -1,6 +1,7 @@
 import Qt 4.7
 
 Item {
+    property real uiScale: 1.0
     property bool isPIN: false;
     property int maxPINLength:  30
     property int maxPassLength: 30
@@ -8,8 +9,8 @@ Item {
 
     signal textFieldClicked();
 
-    width: 320;
-    height: isPIN ? inputField.height + 12: 50;
+    width: 320 * uiScale;
+    height: isPIN ? inputField.height + 12 * uiScale: 50 * uiScale;
 
     function keyInput(keyText, isNumber) {
         if(inputField.text.length < (isPIN ? maxPINLength : maxPassLength)) {
@@ -36,14 +37,15 @@ Item {
     BorderImage {
         visible: !isPIN;
         source: "/usr/palm/sysmgr/images/pin/password-lock-field.png"
-        width: parent.width;
-        height: parent.height;
-        border { left: 30; top: 10; right: 30; bottom: 10 }
+        width: parent.width / uiScale;
+        height: parent.height / uiScale;
+        transform: Scale { origin.x: 0; origin.y: 0; xScale: uiScale; yScale: uiScale;}
+        border { left: 120; top: 40; right: 120; bottom: 40 }
     }
 
     TextInput {
         id: inputField;
-        width: parent.width - 16;
+        width: parent.width - (16 * uiScale);
         anchors.verticalCenter: parent.verticalCenter;
         anchors.horizontalCenter: parent.horizontalCenter;
         echoMode: TextInput.PasswordEchoOnEdit;
@@ -55,8 +57,8 @@ Item {
         horizontalAlignment: isPIN ? TextInput.AlignHCenter : TextInput.AlignLeft;
         color: isPIN ? "#FFF" : "#000";
         font.bold: true;
-        font.pixelSize: 18
-        font.letterSpacing: 2
+        font.pixelSize: 18 * uiScale
+        font.letterSpacing: 2 * uiScale
         font.family: "Prelude"
 
         MouseArea {
@@ -71,9 +73,9 @@ Item {
         id: hintText
         visible: inputField.text.length == 0;
         color: "#9C9C9C";
-        font.pixelSize: 17
+        font.pixelSize: 17 * uiScale
         font.family: "Prelude"
-        width: parent.width - 20;
+        width: parent.width - (20 * uiScale);
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
         horizontalAlignment: isPIN ? Text.AlignHCenter : Text.AlignLeft;

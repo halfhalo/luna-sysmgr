@@ -5,6 +5,7 @@ Drawer {
     property int ident:        0
     property int internalIdent: 0
     property bool coloseOnConnect: false
+    property real uiScale;
 
     // ------------------------------------------------------------
     // External interface to the VPM Element is defined here:
@@ -69,6 +70,7 @@ Drawer {
     drawerHeader:
     MenuListEntry {
         selectable: vpnMenu.active
+        uiScale: vpnMenu.uiScale;
         content: Item {
                     width: parent.width;
 
@@ -79,20 +81,21 @@ Drawer {
                         anchors.verticalCenter: parent.verticalCenter
                         color: vpnMenu.active ? "#FFF" : "#AAA";
                         font.bold: false;
-                        font.pixelSize: 18
+                        font.pixelSize: 18 * uiScale;
                         font.family: "Prelude"
                     }
 
                     Text {
                         id: vpnTitleState
-                        x: vpnMenu.width - width - 14;
+                        x: vpnMenu.width - width - 14 * uiScale;
                         anchors.verticalCenter: parent.verticalCenter
                         text: runtime.getLocalizedString("init");
                         width: vpnMenu.width - vpnTitle.width - 35
                         horizontalAlignment: Text.AlignRight
                         elide: Text.ElideRight;
                         color: "#AAA";
-                        font.pixelSize: 13
+                        font.pixelSize: 13 * uiScale
+                        font.family: "Prelude"
                         font.capitalization: Font.AllUppercase
                     }
                 }
@@ -103,7 +106,7 @@ Drawer {
         spacing: 0
         width: parent.width
 
-        MenuDivider { id: separator }
+        MenuDivider { id: separator; uiScale: vpnMenu.uiScale; }
 
         ListView {
 	    id: vpnListView
@@ -118,12 +121,13 @@ Drawer {
         MenuListEntry {
             id: vpnPrefs
             selectable: true
+            uiScale: vpnMenu.uiScale;
             content: Text {
 		x: ident + internalIdent;
 		text: runtime.getLocalizedString("VPN Preferences");
 		color: "#FFF";
 		font.bold: false;
-		font.pixelSize: 18;
+		font.pixelSize: 18 * uiScale;
 		font.family: "Prelude"
 	    }
             onAction: {
@@ -143,6 +147,7 @@ Drawer {
             MenuListEntry {
                 id: entry
                 selectable: true
+                uiScale: vpnMenu.uiScale;
                 forceSelected: showSelected
 
                 content: VpnEntry {
@@ -153,6 +158,7 @@ Drawer {
                             connected: isConnected;
                             connStatus: connectionStatus;
                             vpnProfileInfo: vpnInfo;
+                            uiScale: vpnMenu.uiScale;
                          }
 
                 onAction: {
@@ -167,7 +173,7 @@ Drawer {
                 }
             }
 
-            MenuDivider { }
+            MenuDivider { uiScale: vpnMenu.uiScale; }
 
         }
 

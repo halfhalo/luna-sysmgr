@@ -27,7 +27,10 @@
 #include "Utils.h"
 #include "SystemService.h"
 #include "AnimationSettings.h"
-
+#include "Preferences.h"
+#include "Settings.h"
+#include <QApplication>
+#include <QDesktopWidget>
 
 InputWindowManager::InputWindowManager(int maxWidth, int maxHeight)
 	: WindowManagerBase(maxWidth, maxHeight)
@@ -61,7 +64,12 @@ void InputWindowManager::init()
 	m_imeView->setBoundingRect(QRectF(0, 0, r.width(), r.height()));
 	m_imeView->setPos(r.topLeft());
 
-	m_activeIME = m_imeMgr.createPreferredIME(SystemUiController::instance()->currentUiWidth(), SystemUiController::instance()->currentUiHeight());
+	m_activeIME = m_imeMgr.createPreferredIME(
+		SystemUiController::instance()->currentUiWidth() / Settings::LunaSettings()->layoutScale,
+		SystemUiController::instance()->currentUiHeight() / Settings::LunaSettings()->layoutScale,
+		Settings::LunaSettings()->dpi,
+		Preferences::instance()->locale());
+
 	Q_ASSERT(m_activeIME);
 
 	connect(&(m_activeIME->m_keyboardHeight), SIGNAL(valueChanged(const qint32&)), 
@@ -69,10 +77,10 @@ void InputWindowManager::init()
 
 	m_imeView->attach(m_activeIME);
 
-    m_fadeAnim.setTargetObject(m_imeView);
-    m_fadeAnim.setPropertyName("opacity");
-    m_fadeAnim.setDuration(AS(brickDuration));
-    m_fadeAnim.setEasingCurve(AS_CURVE(brickCurve));
+	m_fadeAnim.setTargetObject(m_imeView);
+	m_fadeAnim.setPropertyName("opacity");
+	m_fadeAnim.setDuration(AS(brickDuration));
+	m_fadeAnim.setEasingCurve(AS_CURVE(brickCurve));
 }
 
 void InputWindowManager::resize(int width, int height)

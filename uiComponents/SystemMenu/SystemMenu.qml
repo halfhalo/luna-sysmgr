@@ -3,17 +3,19 @@ import Qt 4.7
 
 Item {
     id: systemmenu
-    property int  maxHeight: 410
-    property int  headerIdent:   14
-    property int  subItemIdent:  16
-    property int  dividerWidthOffset: 7
+    property real uiScale: 1.0
+    property int  maxWidth: 300 * uiScale
+    property int  maxHeight: 410 * uiScale
+    property int  headerIdent:   14 * uiScale
+    property int  subItemIdent:  16 * uiScale
+    property int  dividerWidthOffset: 28 * uiScale
     property int  itemIdent:     subItemIdent + headerIdent
-    property int  edgeOffset: 11
+    property int  edgeOffset: 11 * uiScale
     property bool flickableOverride: false
 
     property bool airplaneModeInProgress: false
 
-    width: 300; height: maxHeight;
+    width: maxWidth; height: maxHeight;
 
     // ------------------------------------------------------------
     // External interface to the System Menu is defined here:
@@ -35,6 +37,10 @@ Item {
         }
         // WORK-AROUND: changing the height directly was not causing atYEnd to update.. this pokes it
         flickableArea.resizeContent(flickableArea.contentWidth, flickableArea.contentHeight, 0.0);
+    }
+
+    function setUiScale(scale) {
+        uiScale = scale;
     }
 
     function setMaximumHeight(height) {
@@ -100,9 +106,10 @@ Item {
 
     BorderImage {
         source: "/usr/palm/sysmgr/images/menu-dropdown-bg.png"
-        width: parent.width;
-        height: Math.min(systemmenu.height,  (mainMenu.height + clipRect.anchors.topMargin + clipRect.anchors.bottomMargin));
-        border { left: 30; top: 10; right: 30; bottom: 30 }
+        width: parent.width / (uiScale/4);
+        height: Math.min(systemmenu.height / (uiScale/4),  (mainMenu.height + clipRect.anchors.topMargin + clipRect.anchors.bottomMargin) / (uiScale/4));
+        transform: Scale { origin.x: 0; origin.y: 0; xScale: uiScale/4; yScale: uiScale/4;}
+        border { left: 120; top: 40; right: 120; bottom: 120 }
     }
 
     Rectangle { // clipping rect inside the menu border
@@ -110,10 +117,10 @@ Item {
         anchors.fill: parent
         color: "transparent"
         clip: true
-        anchors.leftMargin: 7
-        anchors.topMargin: 0
-        anchors.bottomMargin:14
-        anchors.rightMargin: 7
+        anchors.leftMargin: 7 * uiScale
+        anchors.topMargin: 0 * uiScale
+        anchors.bottomMargin:14 * uiScale
+        anchors.rightMargin: 7 * uiScale
 
         Flickable {
             id: flickableArea
@@ -138,21 +145,24 @@ Item {
                     id: date
                     menuPosition: 1; // top
                     ident: headerIdent;
+                    uiScale: systemmenu.uiScale;
                 }
 
-                MenuDivider {widthOffset: dividerWidthOffset}
+                MenuDivider {widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 BatteryElement {
                     id: battery
                     ident: headerIdent;
+                    uiScale: systemmenu.uiScale;
                 }
 
-                MenuDivider {widthOffset: dividerWidthOffset}
+                MenuDivider {widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 BrightnessElement {
                     id: brightness
                     visible:    true
-                    margin:      5;
+                    margin:      20 * uiScale;
+                    uiScale: systemmenu.uiScale;
 
                     onBrightnessChanged: {
                         menuBrightnessChanged(value, save);
@@ -163,7 +173,7 @@ Item {
                     }
                 }
 
-                MenuDivider {widthOffset: dividerWidthOffset}
+                MenuDivider {widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 WiFiElement {
                     id: wifi
@@ -173,6 +183,7 @@ Item {
                     internalIdent: subItemIdent;
                     active: !airplaneModeInProgress;
                     maxViewHeight : maxHeight - clipRect.anchors.topMargin - clipRect.anchors.bottomMargin;
+                    uiScale: systemmenu.uiScale;
 
                     onMenuCloseRequest: {
                         closeMenuTimer.interval = delayMs;
@@ -186,7 +197,7 @@ Item {
                     }
                 }
 
-                MenuDivider {visible: wifi.visible; widthOffset: dividerWidthOffset}
+                MenuDivider {visible: wifi.visible; widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 VpnElement {
                     id: vpn
@@ -196,6 +207,7 @@ Item {
                     internalIdent: subItemIdent;
                     active: !airplaneModeInProgress;
                     maxViewHeight : maxHeight - clipRect.anchors.topMargin - clipRect.anchors.bottomMargin;
+                    uiScale: systemmenu.uiScale;
 
                     onMenuCloseRequest: {
                         closeMenuTimer.interval = delayMs;
@@ -209,7 +221,7 @@ Item {
                     }
                 }
 
-                MenuDivider {visible: vpn.visible; widthOffset: dividerWidthOffset}
+                MenuDivider {visible: vpn.visible; widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 BluetoothElement {
                     id: bluetooth
@@ -219,6 +231,7 @@ Item {
                     internalIdent: subItemIdent;
                     active: !airplaneModeInProgress;
                     maxViewHeight : maxHeight - clipRect.anchors.topMargin - clipRect.anchors.bottomMargin;
+                    uiScale: systemmenu.uiScale;
 
                     onMenuCloseRequest: {
                         closeMenuTimer.interval = delayMs;
@@ -232,7 +245,7 @@ Item {
                     }
                 }
 
-                MenuDivider {visible: bluetooth.visible; widthOffset: dividerWidthOffset}
+                MenuDivider {visible: bluetooth.visible; widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 AirplaneModeElement {
                     id: airplane
@@ -240,6 +253,7 @@ Item {
                     ident:      headerIdent;
                     objectName: "airplaneMode"
                     selectable: !airplaneModeInProgress;
+                    uiScale: systemmenu.uiScale;
 
                     onAction: {
                         airplaneModeTriggered()
@@ -249,12 +263,13 @@ Item {
                     }
                 }
 
-                MenuDivider {visible: airplane.visible; widthOffset: dividerWidthOffset}
+                MenuDivider {visible: airplane.visible; widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 RotationLockElement {
                     id: rotation
                     visible: true
                     ident:         headerIdent;
+                    uiScale: systemmenu.uiScale;
 
                     onAction: {
                         rotation.delayUpdate = true;
@@ -265,13 +280,14 @@ Item {
                     }
                 }
 
-                MenuDivider {visible: rotation.visible; widthOffset: dividerWidthOffset}
+                MenuDivider {visible: rotation.visible; widthOffset: dividerWidthOffset; uiScale: systemmenu.uiScale; smooth: true;}
 
                 MuteElement {
                     id: muteControl
                     visible: true
                     menuPosition: 2; // bottom
                     ident:         headerIdent;
+                    uiScale: systemmenu.uiScale;
 
                     onAction: {
                         muteControl.delayUpdate = true;
@@ -289,7 +305,8 @@ Item {
     Item {
         id: maskTop
         z:10
-        width: parent.width - 22
+        width: (parent.width - (22 * uiScale)) / (uiScale/4)
+        scale: uiScale/4
         anchors.horizontalCenter: parent.horizontalCenter
         y: 0
         opacity: !flickableArea.atYBeginning ? 1.0 : 0.0
@@ -297,7 +314,7 @@ Item {
         BorderImage {
             width: parent.width
             source: "/usr/palm/sysmgr/images/menu-dropdown-scrollfade-top.png"
-            border { left: 20; top: 0; right: 20; bottom: 0 }
+            border { left: 80; top: 0; right: 80; bottom: 0 }
         }
 
         Image {
@@ -312,15 +329,16 @@ Item {
     Item {
         id: maskBottom
         z:10
-        width: parent.width - 22
+        width: (parent.width - (22 * uiScale)) / (uiScale/4)
+        scale: uiScale/4
         anchors.horizontalCenter: parent.horizontalCenter
-        y: flickableArea.height - 29
+        y: flickableArea.height - (29 * uiScale)
         opacity: !flickableArea.atYEnd ? 1.0 : 0.0
 
         BorderImage {
             width: parent.width
             source: "/usr/palm/sysmgr/images/menu-dropdown-scrollfade-bottom.png"
-            border { left: 20; top: 0; right: 20; bottom: 0 }
+            border { left: 80; top: 0; right: 80; bottom: 0 }
         }
 
         Image {

@@ -101,6 +101,7 @@ CardWindowManager::CardWindowManager(int maxWidth, int maxHeight)
 	, m_modalWindowState(NoModalWindow)
     , m_playedAngryCardStretchSound(false)
 	, m_animationsActive(false)
+	, m_miniCards(false)
 				  
 {
 	setObjectName("CardWindowManager");
@@ -153,7 +154,7 @@ CardWindowManager::~CardWindowManager()
 
 void CardWindowManager::init()
 {
-	kGapBetweenGroups = Settings::LunaSettings()->gapBetweenCardGroups;
+	kGapBetweenGroups = Settings::LunaSettings()->gapBetweenCardGroups * (m_miniCards ? 1.0f : 0.5f);
 
     if (g_file_test(Settings::LunaSettings()->firstCardLaunch.c_str(), G_FILE_TEST_EXISTS)){
         m_dismissedFirstCard=true;
@@ -274,7 +275,8 @@ void CardWindowManager::resize(int width, int height)
 
 	m_targetPositiveSpace = SystemUiController::instance()->positiveSpaceBounds();
 
-	kWindowOrigin = boundingRect().y() + ((m_normalScreenBounds.y() + 48) + (int) ((m_normalScreenBounds.height() - 48) * kWindowOriginRatio));
+	int offset = 48 * Settings::LunaSettings()->layoutScale;
+	kWindowOrigin = boundingRect().y() + ((m_normalScreenBounds.y() + offset) + (int) ((m_normalScreenBounds.height() - offset) * kWindowOriginRatio));
 
     updateAngryCardThreshold();
 
@@ -558,7 +560,7 @@ void CardWindowManager::prepareAddWindowSibling(CardWindow* win)
 			}
 			else {
 				// spawn new group to the right of active group
-				CardGroup* newGroup = new CardGroup(kActiveScale, kNonActiveScale);
+				CardGroup* newGroup = new CardGroup(kActiveScale * (m_miniCards ? 0.5 : 1.0), kNonActiveScale * (m_miniCards ? 0.5 : 1.0));
 				newGroup->setPos(QPointF(0, kWindowOrigin));
 				newGroup->addToGroup(win);
 				m_groups.insert(m_groups.indexOf(m_activeGroup)+1, newGroup);
@@ -576,7 +578,7 @@ void CardWindowManager::prepareAddWindowSibling(CardWindow* win)
 		}
 	}
 	else {
-		CardGroup* newGroup = new CardGroup(kActiveScale, kNonActiveScale);
+		CardGroup* newGroup = new CardGroup(kActiveScale * (m_miniCards ? 0.5 : 1.0), kNonActiveScale * (m_miniCards ? 0.5 : 1.0));
 		newGroup->setPos(QPointF(0, kWindowOrigin));
 		newGroup->addToGroup(win);
 		m_groups.append(newGroup);
@@ -1222,7 +1224,7 @@ void CardWindowManager::setActiveCardOffScreen(bool fullsize)
 
 	CardWindow::Position pos;
 	qreal yOffset = boundingRect().bottom() - activeCard->y();
-	pos.trans.setZ(fullsize ? 1.0 : kActiveScale);
+	pos.trans.setZ(fullsize ? 1.0 : kActiveScale * (m_miniCards ? 0.5 : 1.0));
 	pos.trans.setY(yOffset - activeCard->boundingRect().y() * pos.trans.z());
 	activeCard->setPosition(pos);
 }
@@ -1422,6 +1424,10 @@ void CardWindowManager::handleFlickGestureMinimized(QGestureEvent* event)
 			slideAllGroups();
 		}
 		else {
+			// if in mini-mode, allow user to flick past multiple groups at once
+			if(m_miniCards)
+				setActiveGroup(groupClosestToCenterHorizontally());
+				
 			// advance to the next/previous group if we are Outer Locked or were still unbiased horizontally
 			if (flick->velocity().x() > 0)
 				switchToPrevGroup();
@@ -1434,8 +1440,13 @@ void CardWindowManager::handleFlickGestureMinimized(QGestureEvent* event)
 void CardWindowManager::handleMousePressMinimized(QGraphicsSceneMouseEvent* event)
 {
 	// try to capture the card the user first touched
-    if (m_activeGroup && m_activeGroup->setActiveCard(event->scenePos()))
-        m_draggedWin = m_activeGroup->activeCard();
+	Q_FOREACH(CardGroup* cg, m_groups)
+	{
+		if(cg->setActiveCard(event->scenePos()))
+		{
+			m_draggedWin = cg->activeCard();
+		}
+	}
 }
 
 void CardWindowManager::handleMouseMoveMinimized(QGraphicsSceneMouseEvent* event)
@@ -1537,7 +1548,7 @@ void CardWindowManager::handleMouseMoveReorder(QGraphicsSceneMouseEvent* event)
 	CardWindow::Position pos;
 	pos.trans = QVector3D(activeWin->position().trans.x() + delta.x(), 
 						  activeWin->position().trans.y() + delta.y(), 
-						  kActiveScale);
+						  kActiveScale * (m_miniCards ? 0.5 : 1.0));
 	activeWin->setPosition(pos);
 
 	// should we switch zones?
@@ -1656,7 +1667,7 @@ void CardWindowManager::moveReorderSlotRight()
 		else {
 			// this was an existing group.
 			// insert a new group to the right of the current active group
-			CardGroup* newGroup = new CardGroup(kActiveScale, kNonActiveScale);
+			CardGroup* newGroup = new CardGroup(kActiveScale * (m_miniCards ? 0.5 : 1.0), kNonActiveScale * (m_miniCards ? 0.5 : 1.0));
 			newGroup->setPos(QPointF(0, kWindowOrigin));
 			m_groups.insert(activeIndex+1, newGroup);
 
@@ -1711,7 +1722,7 @@ void CardWindowManager::moveReorderSlotLeft()
 		else {
 			// this was an existing group.
 			// insert a new group to the left of the current active group
-			CardGroup* newGroup = new CardGroup(kActiveScale, kNonActiveScale);
+			CardGroup* newGroup = new CardGroup(kActiveScale * (m_miniCards ? 0.5 : 1.0), kNonActiveScale * (m_miniCards ? 0.5 : 1.0));
 			newGroup->setPos(QPointF(0, kWindowOrigin));
 			m_groups.insert(activeIndex, newGroup);
 
@@ -1875,7 +1886,8 @@ void CardWindowManager::handleTapGestureMinimized(QTapGesture* event)
 		}
 		else {
 
-			// poke the groups to make sure they animate to their final positions
+			// toggle mini cards
+			toggleMiniCards();
 			slideAllGroups();
 		}
 	}
@@ -2165,6 +2177,18 @@ void CardWindowManager::switchToPrevAppMaximized()
 	maximizeActiveWindow();
 }
 
+void CardWindowManager::toggleMiniCards()
+{
+	m_miniCards = !m_miniCards;
+	
+	Q_FOREACH(CardGroup* group, m_groups) {
+		group->setActiveScale(kActiveScale * (m_miniCards ? 0.5 : 1.0));
+		group->setNonActiveScale(kNonActiveScale * (m_miniCards ? 0.5 : 1.0));
+	}
+	
+	kGapBetweenGroups = Settings::LunaSettings()->gapBetweenCardGroups * (m_miniCards ? 0.5 : 1.0);
+}
+
 void CardWindowManager::slideAllGroups(bool includeActiveCard)
 {
 	if (m_groups.empty() || !m_activeGroup)
@@ -2450,8 +2474,18 @@ void CardWindowManager::slotPositiveSpaceChangeFinished(const QRect& r)
 void CardWindowManager::slotPositiveSpaceChanged(const QRect& r)
 {
 	static bool initialBounds = true;
-	static qreal kActiveWindowScale = Settings::LunaSettings()->activeCardWindowRatio;
-	static qreal kNonActiveWindowScale = Settings::LunaSettings()->nonActiveCardWindowRatio;
+	static qreal kActiveWindowScale;
+	static qreal kNonActiveWindowScale;
+	if(Settings::LunaSettings()->tabletUi)
+	{
+		kActiveWindowScale = Settings::LunaSettings()->activeCardWindowRatio;
+		kNonActiveWindowScale = Settings::LunaSettings()->nonActiveCardWindowRatio;
+	}
+	else
+	{
+		kActiveWindowScale = 0.7;
+		kNonActiveWindowScale = 0.65;
+	}
 
 	if (initialBounds) {
 		initialBounds = false;
@@ -2465,19 +2499,20 @@ void CardWindowManager::slotPositiveSpaceChanged(const QRect& r)
 		m_targetPositiveSpace = r;
 
 		// TODO: this is a temporary solution to fake the existence of the search pill
-		// 	which happens to be 48 pixels tall
-		kActiveScale = ((qreal) (r.height() - 48) * kActiveWindowScale) / (qreal) m_normalScreenBounds.height();
+		// 	which happens to be 50 pixels tall
+		quint32 pillOffset = 50 * Settings::LunaSettings()->layoutScale;
+		kActiveScale = ((qreal) (r.height() - pillOffset) * kActiveWindowScale) / (qreal) m_normalScreenBounds.height();
 		kActiveScale = qMax(kMinimumWindowScale, kActiveScale);
 
-		kNonActiveScale = ((qreal) (r.height() - 48) * kNonActiveWindowScale) / (qreal) m_normalScreenBounds.height();
+		kNonActiveScale = ((qreal) (r.height() - pillOffset) * kNonActiveWindowScale) / (qreal) m_normalScreenBounds.height();
 		kNonActiveScale = qMax(kMinimumWindowScale, kNonActiveScale);
 
 		// allow groups to shift up to a maximum so the tops of cards don't go off the screen
-		kWindowOriginMax = (boundingRect().y() + ((r.y() + 48) + (int) ((r.height() - 48) * kWindowOriginRatio))) -
+		kWindowOriginMax = (boundingRect().y() + ((r.y() + pillOffset) + (int) ((r.height() - pillOffset) * kWindowOriginRatio))) -
 						   Settings::LunaSettings()->positiveSpaceTopPadding -
 						   Settings::LunaSettings()->positiveSpaceBottomPadding;
 
-		kWindowOrigin = boundingRect().y() + ((r.y() + 48) + (int) ((r.height() - 48) * kWindowOriginRatio));
+		kWindowOrigin = boundingRect().y() + ((r.y() + pillOffset) + (int) ((r.height() - pillOffset) * kWindowOriginRatio));
 	}
 
 	QRect rect = r;

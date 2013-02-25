@@ -5,6 +5,7 @@ Drawer {
     id: wifiMenu
     property int ident:         0
     property int internalIdent: 0
+    property real uiScale;
 
     property bool isWifiOn: false
     property bool coloseOnConnect: false
@@ -17,7 +18,7 @@ Drawer {
     signal menuClosed()
     signal onOffTriggered()
     signal prefsTriggered()
-    signal itemSelected(int index, string name, int profileId, string securityType, string connState)
+    signal itemSelected(int index, string name, int profileId, bool secured, string connState)
 
     function setWifiState(isOn, state) {
         if(!isWifiOn && isOn) {
@@ -35,11 +36,11 @@ Drawer {
         }
     }
 
-    function addWifiNetworkEntry(name, profId, sigBars, secType, connectionStatus, isConnected) {
+    function addWifiNetworkEntry(name, profId, sigBars, secured, connectionStatus, isConnected) {
         wifiList.append({"wifiName": name,
                          "profId":profId,
                          "sigBars": sigBars,
-                         "secType": secType,
+                         "secured": secured,
                          "connectionStatus": connectionStatus,
                          "isConnected": isConnected,
                          "listIndex": wifiList.count,
@@ -138,6 +139,7 @@ Drawer {
     drawerHeader:
     MenuListEntry {
         selectable: wifiMenu.active
+        uiScale: wifiMenu.uiScale;
         content: Item {
                     width: parent.width;
 
@@ -148,28 +150,30 @@ Drawer {
                         text: runtime.getLocalizedString("Wi-Fi");
                         color: wifiMenu.active ? "#FFF" : "#AAA";
                         font.bold: false;
-                        font.pixelSize: 18
+                        font.pixelSize: 18 * uiScale;
                         font.family: "Prelude"
                     }
 
                     AnimatedSpinner {
                     //Spinner {
                         id: wifiSpinner
-                        x: wifiTitle.width + 18;
-                        y:-17
+                        x: wifiTitle.width + 18 * uiScale;
+                        y: -17 * uiScale;
                         on:false
+                        scale: uiScale/4
                     }
 
                     Text {
                         id: wifiTitleState
-                        x: wifiMenu.width - width - 14;
+                        x: wifiMenu.width - width - 14 * uiScale;
                         anchors.verticalCenter: parent.verticalCenter
                         text: runtime.getLocalizedString("init");
                         width: wifiMenu.width - wifiTitle.width - 60
                         horizontalAlignment: Text.AlignRight
                         elide: Text.ElideRight;
                         color: "#AAA";
-                        font.pixelSize: 13
+                        font.pixelSize: 13 * uiScale
+                        font.family: "Prelude"
                         font.capitalization: Font.AllUppercase
                     }
                 }
@@ -180,17 +184,18 @@ Drawer {
         spacing: 0
         width: parent.width
 
-        MenuDivider  { id: separator }
+        MenuDivider  { id: separator; uiScale: wifiMenu.uiScale; }
 
         MenuListEntry {
             id: wifiOnOff
             selectable: true
+            uiScale: wifiMenu.uiScale;
             content: Text {  id: wifiOnOffText;
                              x: ident + internalIdent;
                              text: isWifiOn ? runtime.getLocalizedString("Turn off WiFi") : runtime.getLocalizedString("Turn on WiFi");
                              color: "#FFF";
                              font.bold: false;
-                             font.pixelSize: 18
+                             font.pixelSize: 18 * uiScale;
                              font.family: "Prelude"
                          }
 
@@ -205,7 +210,7 @@ Drawer {
             }
         }
 
-        MenuDivider {}
+        MenuDivider { uiScale: wifiMenu.uiScale; }
 
         ListView {
             id: wifiListView
@@ -219,7 +224,8 @@ Drawer {
 
         MenuListEntry {
             selectable: true
-            content: Text { x: ident + internalIdent; text: runtime.getLocalizedString("Wi-Fi Preferences"); color: "#FFF"; font.bold: false; font.pixelSize: 18; font.family: "Prelude"}
+            uiScale: wifiMenu.uiScale;
+            content: Text { x: ident + internalIdent; text: runtime.getLocalizedString("Wi-Fi Preferences"); color: "#FFF"; font.bold: false; font.pixelSize: 18 * uiScale; font.family: "Prelude"}
             onAction: {
                 clearWifiList()
                 prefsTriggered()
@@ -238,6 +244,7 @@ Drawer {
             MenuListEntry {
                 id: entry
                 selectable: true
+       		uiScale: wifiMenu.uiScale;
                 forceSelected: showSelected
 
                 content: WifiEntry {
@@ -247,17 +254,18 @@ Drawer {
                             name:         wifiName;
                             profileId:    profId;
                             signalBars:   sigBars;
-                            securityType: secType;
+                            secured:      secured;
                             connStatus:   connectionStatus;
                             status:       itemStatus;
                             statusInBold: boldStatus;
                             connected:    isConnected;
+                            uiScale: wifiMenu.uiScale;
                          }
                 onAction: {
                     itemSelected(index,
                                  wifiNetworkData.name,
                                  wifiNetworkData.profileId,
-                                 wifiNetworkData.securityType,
+                                 wifiNetworkData.secured,
                                  wifiNetworkData.connStatus)
 
                     if((wifiNetworkData.connStatus == "ipConfigured") ||
@@ -265,7 +273,7 @@ Drawer {
                        (wifiNetworkData.connStatus == "ipFailed") ||
                        (wifiNetworkData.connStatus == "associationFailed")  ) {
                         menuCloseRequest(300);
-                    } else if((wifiNetworkData.profileId == 0) && (wifiNetworkData.securityType != "")) {
+                    } else if((wifiNetworkData.profileId == 0) && (wifiNetworkData.secured)) {
                         menuCloseRequest(300);
                     }
 
@@ -273,7 +281,7 @@ Drawer {
                 }
             }
 
-            MenuDivider {}
+            MenuDivider { uiScale: wifiMenu.uiScale; }
         }
 
     }

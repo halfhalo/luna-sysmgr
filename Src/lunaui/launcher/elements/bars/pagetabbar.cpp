@@ -40,7 +40,7 @@
 #include <QGesture>
 #include <QGestureEvent>
 
-#ifdef TARGET_DEVICE
+#if defined(TARGET_DEVICE)
 #include <FlickGesture.h>
 #include <SysMgrDefs.h>
 #else
@@ -74,7 +74,7 @@ QFont PageTabBar::staticLabelFontForTabs()
 	{
 		s_tabLabelFont = QFont(QString::fromStdString(Settings::LunaSettings()->fontQuicklaunch));
 		quint32 fontSize = qBound((quint32)2,LayoutSettings::settings()->tabBarTabFontSizePx,(quint32)100);
-		s_tabLabelFont.setPixelSize(fontSize);
+		s_tabLabelFont.setPixelSize(fontSize * (Settings::LunaSettings()->layoutScale * 0.8)); //Downloads text overruns at full scale
 		s_tabLabelFont.setBold(LayoutSettings::settings()->tabBarTabFontEmbolden);
 	}
 	return s_tabLabelFont;
@@ -82,7 +82,7 @@ QFont PageTabBar::staticLabelFontForTabs()
 
 PageTabBar::PageTabBar(const QRectF& pageTabBarGeometry,LauncherObject * p_belongsTo)
 : ThingPaintable(pageTabBarGeometry)
-, m_maxTabWidth(150)
+, m_maxTabWidth(150 * Settings::LunaSettings()->layoutScale)
 , m_interactionsBlocked(false)
 , m_qp_currentUIOwner(p_belongsTo)
 , m_qp_backgroundPmo(0)
@@ -137,7 +137,7 @@ QSize PageTabBar::PageTabSizeFromLauncherSize(quint32 launcherWidth,quint32 laun
 	{
 		return QSize(
 				launcherWidth,
-				qMin(launcherHeight,(quint32)(LayoutSettings::settings()->tabBarHeightAbsolute))
+				qMin(launcherHeight,(quint32)(LayoutSettings::settings()->tabBarHeightAbsolute)) * Settings::LunaSettings()->layoutScale
 		);
 	}
 
@@ -173,23 +173,26 @@ void PageTabBar::slotAddTab(const QString& labelString,Page * p_refersToPage)
 
  */
 
+	int horzOffset = 20 * Settings::LunaSettings()->layoutScale;
+	int vertOffset = 4 * Settings::LunaSettings()->layoutScale;
+
 	//quickLoadNineTiled: specify in-coordinates in top,bottom,left,right order
 	Pixmap9TileObject * pNormalBgPmo = PixmapObjectLoader::instance()->quickLoadNineTiled(
 			QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_NORMAL_BACKGROUND_FILEPATH),
-			20,20,4,4
+			horzOffset,horzOffset,vertOffset,vertOffset
 	);
 	Pixmap9TileObject * pSelectedBgPmo = PixmapObjectLoader::instance()->quickLoadNineTiled(
 			QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_SELECTED_BACKGROUND_FILEPATH),
-			20,20,20,20
+			horzOffset,horzOffset,horzOffset,horzOffset
 	);
 	Pixmap9TileObject * pHighlightedBgPmo = PixmapObjectLoader::instance()->quickLoadNineTiled(
 			QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_HIGHLIGHTED_BACKGROUND_FILEPATH),
-			20,20,20,20
+			horzOffset,horzOffset,horzOffset,horzOffset
 	);
 
 	Pixmap3VTileObject * pVdiv = PixmapObjectLoader::instance()->quickLoadThreeVertTiled(
 				QString(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_VDIV_FILEPATH),
-				20,20
+				horzOffset,horzOffset
 	);
 
 	pPageTab->setBackgrounds(pNormalBgPmo,pSelectedBgPmo,pHighlightedBgPmo);

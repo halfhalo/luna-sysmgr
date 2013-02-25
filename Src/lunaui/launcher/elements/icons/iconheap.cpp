@@ -26,6 +26,7 @@
 #include "stringtranslator.h"
 
 #include "Settings.h"
+#include "iconlayoutsettings.h"
 
 QPointer<IconHeap> IconHeap::s_qp_instance = 0;
 QString IconHeap::s_standardFrameFilePath = QString();
@@ -295,7 +296,9 @@ IconBase * IconHeap::makeIcon(const QString& mainIconFilePath,const QString& fra
 		return 0;
 		//TODO: MEMLEAK: pMainIconPmo?????
 	}
-	PixmapObject * pLaunchFeedbackPmo = PixmapObjectLoader::instance()->quickLoad(feedbackIconFilePath);
+	
+	quint32 feedbackSize = 90 * Settings::LunaSettings()->layoutScale;
+	PixmapObject * pLaunchFeedbackPmo = PixmapObjectLoader::instance()->quickLoad(feedbackIconFilePath, QSize(feedbackSize, feedbackSize), false);
 	if (!pLaunchFeedbackPmo)
 	{
 		return 0;
@@ -324,13 +327,22 @@ IconBase * IconHeap::makeIconConstrained(const QString& mainIconFilePath,const Q
 	{
 		return 0;
 	}
-	PixmapObject * pFrameIconPmo = PixmapObjectLoader::instance()->quickLoad(frameIconFilePath);
+	
+	quint32 frameSize = qMin(IconLayoutSettings::settings()->reorderablelayout_fixedIconCellSize.width(),
+				IconLayoutSettings::settings()->reorderablelayout_fixedIconCellSize.height());
+	
+	PixmapObject * pFrameIconPmo = PixmapObjectLoader::instance()->quickLoad(frameIconFilePath, QSize(frameSize, frameSize), false);
 	if (!pFrameIconPmo)
 	{
 		return 0;
 		//TODO: MEMLEAK: pMainIconPmo?????
 	}
-	PixmapObject * pLaunchFeedbackPmo = PixmapObjectLoader::instance()->quickLoad(feedbackIconFilePath);
+	
+	
+	quint32 feedbackSize = qMin(IconLayoutSettings::settings()->reorderablelayout_fixedIconCellSize.width(),
+				IconLayoutSettings::settings()->reorderablelayout_fixedIconCellSize.height());
+				
+	PixmapObject * pLaunchFeedbackPmo = PixmapObjectLoader::instance()->quickLoad(feedbackIconFilePath, QSize(feedbackSize, feedbackSize), false);
 	if (!pLaunchFeedbackPmo)
 	{
 		return 0;

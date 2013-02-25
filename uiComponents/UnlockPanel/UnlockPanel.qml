@@ -4,9 +4,11 @@ import CustomComponents 1.0
 
 
 InputItem {
-    property int  edgeOffset: 11
-    property int  margin: 6
-    property int  topOffset: 4
+    id: unlockPanel
+    property real uiScale: 1.0
+    property int  edgeOffset: 11 * uiScale
+    property int  margin: 6 * uiScale
+    property int  topOffset: 4 * uiScale
     property bool isPINEntry: true
     property int  minPassLength: 4
     property bool enforceMinLength: false
@@ -18,6 +20,10 @@ InputItem {
     signal requestFocusChange(bool focusRequest);
 
     signal passwordSubmitted(string password, bool isPIN);
+
+    function setUiScale(scale) {
+        uiScale = scale;
+    }
 
     function setupDialog(isPIN, title, hintMessage, enforceLength, minLen) {
         isPINEntry = isPIN;
@@ -43,21 +49,23 @@ InputItem {
         }
     }
 
-    width: 320 + 2 * edgeOffset
+    width: (320 * uiScale) + 2 * edgeOffset
     height: buttonGrid.y + buttonGrid.height + edgeOffset + margin;
     focus: true;
 
     BorderImage {
         source: "/usr/palm/sysmgr/images/popup-bg.png"
-        width: parent.width;
-        height: parent.height;
-        border { left: 35; top: 40; right: 35; bottom: 40 }
+        width: parent.width / uiScale;
+        height: parent.height / uiScale;
+        transform: Scale { origin.x: 0; origin.y: 0; xScale: uiScale; yScale: uiScale;}
+        smooth: true;
+        border { left: 140; top: 160; right: 140; bottom: 160 }
     }
 
     Text {
         id: titleText;
         font.family: "Prelude"
-        font.pixelSize: 18
+        font.pixelSize: 18 * uiScale
         font.bold: true;
         color: "#FFF";
         anchors.horizontalCenter: parent.horizontalCenter
@@ -69,9 +77,10 @@ InputItem {
     PasswordField {
         id: passwordField;
         isPIN: isPINEntry;
-        width: 320 - 4;
-        x: edgeOffset + 3
-        y: titleText.y + titleText.height + (isPINEntry ? 0 : 6)
+        width: (320 - 4) * uiScale;
+        x: edgeOffset + (3 * uiScale)
+        y: titleText.y + titleText.height + (isPINEntry ? 0 : 6 * uiScale)
+        uiScale: unlockPanel.uiScale
 
         onTextFieldClicked: {
             if(!isPINEntry) {
@@ -87,6 +96,7 @@ InputItem {
         visible: isPINEntry
         x: edgeOffset
         anchors.top: passwordField.bottom
+        uiScale: unlockPanel.uiScale
 
         onKeyAction: {
             if(keyText == "\b") {
@@ -108,7 +118,7 @@ InputItem {
 
     Grid {
         id: buttonGrid
-        width: 320 - 2 * margin
+        width: (320 * uiScale) - 2 * margin
         x: edgeOffset + margin
         anchors.top: isPINEntry ? keyPad.bottom : passwordField.bottom;
 
@@ -119,7 +129,8 @@ InputItem {
         ActionButton {
             caption: runtime.getLocalizedString("Cancel");
             width: buttonGrid.width/buttonGrid.columns - margin / 2
-            height:52
+            height: 52 * uiScale
+            uiScale: unlockPanel.uiScale
             onAction: entryCanceled();
         }
 
@@ -127,7 +138,8 @@ InputItem {
             caption: runtime.getLocalizedString("Done");
             affirmative: true
             width: buttonGrid.width/buttonGrid.columns - margin / 2
-            height:52
+            height: 52 * uiScale
+            uiScale: unlockPanel.uiScale
             active: passwordField.enteredText.length >= (enforceMinLength ? minPassLength : 1);
             onAction: {
                 if(passwordField.enteredText.length > 0) {

@@ -25,10 +25,10 @@
 #include "AnimationSettings.h"
 #include "stdio.h"
 
-#define ITEM_SPACING     5
-#define GROUP_RIGHT_PADDING    3
 #define MENU_OVERLAY_OPACITY 1.0
 
+static const int kItemSpacing = 5 * Settings::LunaSettings()->layoutScale;
+static const int kGroupRightPadding = 3 * Settings::LunaSettings()->layoutScale;
 
 StatusBarItemGroup::StatusBarItemGroup(int height, bool hasArrow, bool showSeparator, Alignment align)
 	:  StatusBarItem(align)
@@ -53,6 +53,7 @@ StatusBarItemGroup::StatusBarItemGroup(int height, bool hasArrow, bool showSepar
 	if(m_hasArrow) {
 		std::string filePath = statusBarImagesPath + "menu-arrow.png";
 		m_arrowPix = new QPixmap(filePath.c_str());
+		*m_arrowPix = m_arrowPix->scaledToHeight(m_arrowPix->height() * (Settings::LunaSettings()->pixmapScale), Qt::SmoothTransformation);
 	} else {
 		m_arrowAnimProg = 1.0;
 	}
@@ -60,6 +61,7 @@ StatusBarItemGroup::StatusBarItemGroup(int height, bool hasArrow, bool showSepar
 	if(showSeparator && (align != StatusBarItem::AlignCenter)) {
 		std::string filePath = statusBarImagesPath + "status-bar-separator.png";
 		m_separatorPix = new QPixmap(filePath.c_str());
+		*m_separatorPix = m_separatorPix->scaledToHeight(m_separatorPix->height() * (Settings::LunaSettings()->pixmapScale), Qt::SmoothTransformation);
 	}
 
 	layout();
@@ -119,6 +121,7 @@ void StatusBarItemGroup::setActionable(bool actionable)
 
 			std::string filePath = statusBarImagesPath + "status-bar-menu-dropdown-tab.png";
 			m_activeBkgPix = new QPixmap(filePath.c_str());
+			*m_activeBkgPix = m_activeBkgPix->scaledToHeight(m_activeBkgPix->height() * (Settings::LunaSettings()->pixmapScale), Qt::SmoothTransformation);
 		}
 
 //		if(m_actionable && !m_pressedBkgPix) {
@@ -127,6 +130,7 @@ void StatusBarItemGroup::setActionable(bool actionable)
 //
 //			std::string filePath = statusBarImagesPath + "status-bar-menu-dropdown-tab-pressed.png";
 //			m_pressedBkgPix = new QPixmap(filePath.c_str());
+//			*m_pressedBkgPix = m_pressedBkgPix->scaledToHeight(m_pressedBkgPix->height() * (Settings::LunaSettings()->pixmapScale), Qt::SmoothTransformation);
 //		}
 	}
 
@@ -316,13 +320,17 @@ void StatusBarItemGroup::mousePressEvent(QGraphicsSceneMouseEvent* event)
 	} else {
 		event->accept();
 		m_mouseDown = true;
+		m_mouseDownPos = event->pos();
 //		update();
 	}
 }
-
+#include <QDebug>
 void StatusBarItemGroup::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-
+	if(m_actionable && m_mouseDown && event->pos().y() > m_mouseDownPos.y() + Settings::LunaSettings()->tapRadius) {
+		actionTriggered();
+		m_mouseDown = false;
+	}
 }
 
 void StatusBarItemGroup::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
@@ -353,7 +361,7 @@ void StatusBarItemGroup::paint(QPainter* painter, const QStyleOptionGraphicsItem
 	qreal opacity = painter->opacity();
 	QRectF tabRect;
 
-	static const int margin = 11;
+	static const int margin = 11 * Settings::LunaSettings()->layoutScale;
 
 	if(m_alignment == AlignRight && m_separatorPix) {
 		tabRect = m_bounds.adjusted(m_separatorPix->width() - margin, 0, margin, 0);
@@ -436,7 +444,7 @@ void StatusBarItemGroup::layoutCenter()
 	for(int x = 0; x < m_items.size(); x++) {
 		QGraphicsObject* item = m_items.at(x);
 		if(item) {
-			width += item->boundingRect().width() + ITEM_SPACING;
+			width += item->boundingRect().width() + kItemSpacing;
 		}
 	}
 
@@ -462,7 +470,7 @@ void StatusBarItemGroup::layoutCenter()
 				item->setPos(currRight - item->boundingRect().width()/2, 0);
 			}
 
-			currRight -= item->boundingRect().width() + ITEM_SPACING;
+			currRight -= item->boundingRect().width() + kItemSpacing;
 		}
 	}
 
@@ -485,18 +493,18 @@ void StatusBarItemGroup::layoutRight()
 		width = m_arrowPix->width() + 2.0 * ARROW_SPACING;
 	}
 	else {
-		width = GROUP_RIGHT_PADDING;
+		width = kGroupRightPadding;
 	}
 
 	if(m_separatorPix && !m_separatorPix->isNull()) {
-		width += m_separatorPix->width(); // + ITEM_SPACING;
+		width += m_separatorPix->width(); // + kItemSpacing;
 	}
 
 	for(int x = 0; x < m_items.size(); x++) {
 		StatusBarItem* item = m_items.at(x);
 		if(item) {
 			if(x > 0)
-				width += ITEM_SPACING;
+				width += kItemSpacing;
 			width += item->boundingRect().width();
 		}
 	}
@@ -505,7 +513,7 @@ void StatusBarItemGroup::layoutRight()
 
 	currRight = 0;
 	if (!m_hasArrow)
-		currRight = - GROUP_RIGHT_PADDING;
+		currRight = - kGroupRightPadding;
 
 	if(m_hasArrow && m_arrowPix && !m_arrowPix->isNull() && (m_arrowAnimProg > 0.0)) {
 		currRight -= m_arrowPix->width() + 2.0 * ARROW_SPACING;
@@ -518,7 +526,7 @@ void StatusBarItemGroup::layoutRight()
 			StatusBarItem::Alignment align = item->alignment();
 
 			if(x > 0)
-				currRight -= ITEM_SPACING;
+				currRight -= kItemSpacing;
 
 			if(align == AlignRight) {
 				item->setPos(currRight, 0);
@@ -552,13 +560,13 @@ void StatusBarItemGroup::layoutLeft()
 	}
 
 	if(m_separatorPix && !m_separatorPix->isNull()) {
-		width += m_separatorPix->width(); // + ITEM_SPACING;
+		width += m_separatorPix->width(); // + kItemSpacing;
 	}
 
 	for(int x = 0; x < m_items.size(); x++) {
 		StatusBarItem* item = m_items.at(x);
 		if(item) {
-			width += item->boundingRect().width() + ITEM_SPACING;
+			width += item->boundingRect().width() + kItemSpacing;
 		}
 	}
 
@@ -573,7 +581,7 @@ void StatusBarItemGroup::layoutLeft()
 			StatusBarItem::Alignment align = item->alignment();
 
 			if(x > 0)
-				currLeft += ITEM_SPACING;
+				currLeft += kItemSpacing;
 
 			if(align == AlignLeft) {
 				item->setPos(currLeft, 0);

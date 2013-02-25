@@ -26,6 +26,7 @@ debug {
 }
 
 MACHINE_NAME = x86
+STAGING_INCLUDE_DIR = $$(LUNA_STAGING)/include
 
 LUNA_SRC_BASE = $$(LUNA_SRC_BASE)
 
@@ -51,12 +52,14 @@ CONFIG_BUILD += opengl
 
 #CONFIG_BUILD += openglcomposited
 
-SOURCES += HostQtDesktop.cpp FlickGestureRecognizer.cpp SoundPlayerDummy.cpp
-HEADERS += HostQtDesktop.h FlickGestureRecognizer.h FlickGesture.h SoundPlayerDummy.h
+SOURCES += HostQtDesktop.cpp
+HEADERS += HostQtDesktop.h
 
 LIBS += \
 	-Wl,-rpath $$(LUNA_STAGING)/lib \
 	-L$$(LUNA_STAGING)/lib \
+	-Wl,-rpath $$(LUNA_STAGING)/usr/lib \
+	-L$$(LUNA_STAGING)/usr/lib \
 
 INCLUDEPATH += \
 	$$(LUNA_STAGING)/include \
@@ -69,6 +72,7 @@ INCLUDEPATH += \
 	$$(LUNA_STAGING)/include/QtDeclarative \
 	$$(LUNA_STAGING)/include/sysmgr-ipc \
 	$$(LUNA_STAGING)/include/ime \
+	$$(LUNA_STAGING)/usr/include \
 
 
 #install

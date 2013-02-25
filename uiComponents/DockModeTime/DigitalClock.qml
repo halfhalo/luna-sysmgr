@@ -4,6 +4,7 @@ Item {
     id: digitalclock
     width: 1024; height: 768
 
+    property real uiScale: 1.0
     //constants
     property int timeOffset: -4
     property int dateOffset: -4

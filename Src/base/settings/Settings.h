@@ -29,6 +29,7 @@
 #include <set>
 #include <glib.h>
 #include <QtGlobal>
+#include <QVariant>
 
 class Settings
 {
@@ -66,6 +67,7 @@ public:
 
 	int					cardLimit; // -1 to disable
 	std::set<std::string>	appsToAllowInLowMemory;
+    bool                allowAllAppsInLowMemory;
 
 	bool				showReticle;
 
@@ -189,7 +191,6 @@ public:
 	unsigned int		dockModeMenuHeight;
 	
 	bool				virtualKeyboardEnabled;
-	bool				showNotificationsAtTop;
 
 	bool				virtualCoreNaviEnabled;
 	unsigned int        virtualCoreNaviHeight;
@@ -218,6 +219,10 @@ public:
 	
 	bool displayUiRotates;
 	bool tabletUi;
+	qreal dpi;
+	qreal pixmapFactor;
+	qreal layoutScale;
+	qreal pixmapScale;
 	int  homeButtonOrientationAngle;
 
 	int positiveSpaceTopPadding;
@@ -283,6 +288,8 @@ public:
 
 
 	void createNeededFolders();
+
+    QVariant getSetting(const QString &key) const;
 
 private:
 	void load(const char* settingsFile);

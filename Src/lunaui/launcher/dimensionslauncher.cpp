@@ -77,7 +77,7 @@
 #include "QtUtils.h"
 #include "WindowServer.h"
 
-#ifdef TARGET_DEVICE
+#if defined(TARGET_DEVICE)
 #include <FlickGesture.h>
 #include <SysMgrDefs.h>
 #else
@@ -121,10 +121,14 @@ static OverlayLayer * LoadOverlayLayer(LauncherObject * p_launcher)
 	PixmapObject * pTabBarShadowPmo =
 			PixmapObjectLoader::instance()->quickLoad(
 					GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_SHADOW_FILEPATH
+					, QSize(10 * Settings::LunaSettings()->layoutScale, 10 * Settings::LunaSettings()->layoutScale)
+					, false
 			);
 	PixmapObject * pQuickLaunchShadowPmo =
 			PixmapObjectLoader::instance()->quickLoad(
 					GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + QUICKLAUNCH_SHADOW_FILEPATH
+					, QSize(20 * Settings::LunaSettings()->layoutScale, 20 * Settings::LunaSettings()->layoutScale)
+					, false
 			);
 	OverlayLayer * pOverlay = new OverlayLayer(p_launcher->geometry());
 	pOverlay->setParentItem(p_launcher);
@@ -1281,7 +1285,7 @@ void LauncherObject::fullSizeInit(quint32 width,quint32 height)
 	QSize derivedLauncherSize = LauncherSizeFromScreenSize(width,height);
 	m_geom = DimensionsGlobal::realRectAroundRealPoint(derivedLauncherSize);
 
-	m_qp_background = new PixmapObject(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_LAUNCHER_BACKGROUND_FILEPATH);
+	m_qp_background = new PixmapObject(GraphicsSettings::DiUiGraphicsSettings()->graphicsAssetBaseDirectory + TAB_LAUNCHER_BACKGROUND_FILEPATH, QSize(180 * Settings::LunaSettings()->layoutScale, 180 * Settings::LunaSettings()->layoutScale), false);
 	if (m_qp_background)
 	{
 		m_drawBackground = true;
@@ -1369,9 +1373,14 @@ void LauncherObject::fullSizeInit(quint32 width,quint32 height)
 		}
 		qDebug() << __FUNCTION__ << ": using QuickLaunchArea = " << quickLaunchArea;
 		QSize r = QSize(DimensionsGlobal::roundDown(m_geom.width()),
-				qMax(2,DimensionsGlobal::roundDown(m_geom.bottom()
-													-m_qp_pageTabBar->positionRelativeGeometry().bottom()
-													-quickLaunchArea.height()-1.0)));
+				qMax(2,DimensionsGlobal::roundDown(
+					m_geom.bottom()
+					-m_qp_pageTabBar->positionRelativeGeometry().bottom()
+					-(Settings::LunaSettings()->tabletUi ? quickLaunchArea.height() : 0)
+					-1.0)
+				    )
+				);
+					
 		//make evenly divisible (multiple of 2)
 		r.setWidth(r.width() - (r.width() % 2));
 		r.setHeight(r.height() - (r.height() % 2));
@@ -2242,9 +2251,13 @@ void LauncherObject::resize(int w, int h)
 				quickLaunchArea = m_qp_mainWindow->quickLaunchArea();
 			}
 			QSize r = QSize(DimensionsGlobal::roundDown(m_geom.width()),
-					qMax(2,DimensionsGlobal::roundDown(m_geom.bottom()
-														-m_qp_pageTabBar->positionRelativeGeometry().bottom()
-														-quickLaunchArea.height()-1.0)));
+					qMax(2,DimensionsGlobal::roundDown(
+						m_geom.bottom()
+						-m_qp_pageTabBar->positionRelativeGeometry().bottom()
+						-(Settings::LunaSettings()->tabletUi ? quickLaunchArea.height() : 0)
+						-1.0)
+					    )
+					);
 			//make evenly divisible (multiple of 2)
 			r.setWidth(r.width() - (r.width() % 2));
 			r.setHeight(r.height() - (r.height() % 2));

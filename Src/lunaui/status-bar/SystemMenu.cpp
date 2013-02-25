@@ -83,7 +83,7 @@ SystemMenu::SystemMenu(int width, int height, bool restricted)
 {
 	qmlRegisterType<AnimatedSpinner>("SystemMenu", 1,0, "AnimatedSpinner");
 
-	m_bounds = QRect(-160, -240, 320, 480);
+	m_bounds = QRect(-width/2, -height/2, width, height);
 
 	m_menuHandler = new MenuHandler(this);
 
@@ -163,6 +163,12 @@ void SystemMenu::init()
 			 m_menuObject = qobject_cast<QGraphicsObject *>(m_qmlMenu->create());
 			 if(m_menuObject) {
 				 m_menuObject->setParentItem(this);
+				 
+				 // scale the system menu
+				 QMetaObject::invokeMethod(m_menuObject, "setUiScale", Q_ARG(QVariant, Settings::LunaSettings()->layoutScale));
+				 
+				 
+				 // setup geometry and positioning
 				 m_rightEdgeOffset = m_menuObject->property("edgeOffset").toInt();
 				 prepareGeometryChange();
 				 m_bounds = QRect(-m_menuObject->boundingRect().width()/2, -m_menuObject->boundingRect().height()/2,
@@ -185,8 +191,8 @@ void SystemMenu::init()
 					 connect(m_wifiMenu,SIGNAL(menuClosed()), SLOT(slotWifiMenuClosed()));
 					 connect(m_wifiMenu,SIGNAL(onOffTriggered()), SLOT(slotWifiOnOffTriggered()));
 					 connect(m_wifiMenu,SIGNAL(prefsTriggered()), SLOT(slotWifiPrefsTriggered()));
-					 connect(m_wifiMenu,SIGNAL(itemSelected(int, QString, int, QString, QString)),
-							 SLOT(slotWifiNetworkSelected(int, QString, int, QString, QString)));
+					 connect(m_wifiMenu,SIGNAL(itemSelected(int, QString, int, bool, QString)),
+							 SLOT(slotWifiNetworkSelected(int, QString, int, bool, QString)));
 			 }
 			 else {
 				 m_wifiMenu->setProperty ("active", false);
@@ -349,7 +355,7 @@ void SystemMenu::slotWifiPrefsTriggered()
 	launchApp(WIFI_PREFS_APP_ID, "");
 }
 
-void SystemMenu::slotWifiNetworkSelected(int index, QString name, int profileId, QString securityType, QString connStatus)
+void SystemMenu::slotWifiNetworkSelected(int index, QString name, int profileId, bool secured, QString connStatus)
 {
 	if (m_restricted)
 		return;
@@ -360,23 +366,22 @@ void SystemMenu::slotWifiNetworkSelected(int index, QString name, int profileId,
 			                            (connStatus == "ipFailed") || (connStatus == "associationFailed"))  ) {
 		//Launch WiFi Panel with Target Parameter.
 		char params[255];
-		sprintf(params,"{\"target\": {\"ssid\": \"%s\", \"securityType\": \"%s\", \"profileId\": %d, \"connectState\": \"%s\"},}",
-				       name.toAscii().data(), securityType.toAscii().data(), profileId, connStatus.toAscii().data());
+		sprintf(params,"{\"target\": {\"ssid\": \"%s\", \"profileId\": %d, \"connectState\": \"%s\"},}",
+				       name.toAscii().data(), profileId, connStatus.toAscii().data());
 		launchApp(WIFI_PREFS_APP_ID, params);
 	} else {
 		if(profileId) {
 			// Network already has a profile
-			StatusBarServicesConnector::instance()->connectToWifiNetwork(name.toStdString(), profileId, securityType.toStdString());
+			StatusBarServicesConnector::instance()->connectToWifiNetwork(name.toStdString(), profileId);
 			QMetaObject::invokeMethod(m_wifiMenu, "wifiConnectStateUpdate", Q_ARG(QVariant, false), Q_ARG(QVariant, name), Q_ARG(QVariant, "userSelected"));
 		} else {
-			if(!securityType.isEmpty()) {
+			if(secured) {
 				//Launch WiFi Panel with Target Parameter.
 				char params[255];
-				sprintf(params,"{\"target\": {\"ssid\": \"%s\", \"securityType\": \"%s\"},}",
-						       name.toAscii().data(), securityType.toAscii().data());
+				sprintf(params,"{\"target\": {\"ssid\": \"%s\"},}", name.toAscii().data());
 				launchApp(WIFI_PREFS_APP_ID, params);
 			} else {
-				StatusBarServicesConnector::instance()->connectToWifiNetwork(name.toStdString(), profileId, securityType.toStdString());
+				StatusBarServicesConnector::instance()->connectToWifiNetwork(name.toStdString(), profileId);
 				QMetaObject::invokeMethod(m_wifiMenu, "wifiConnectStateUpdate", Q_ARG(QVariant, false), Q_ARG(QVariant, name), Q_ARG(QVariant, "userSelected"));
 			}
 		}
@@ -435,7 +440,7 @@ void SystemMenu::slotWifiAvailableNetworksListUpdate(int numNetworks, t_wifiAcce
 										  Q_ARG(QVariant, QString::fromUtf8(list[x].ssid)),
 										  Q_ARG(QVariant, list[x].profileId),
 										  Q_ARG(QVariant, CLAMP(list[x].signalBars, 0, 3)),
-										  Q_ARG(QVariant, list[x].securityType),
+										  Q_ARG(QVariant, list[x].secured),
 										  Q_ARG(QVariant, list[x].connectionState),
 										  Q_ARG(QVariant, list[x].connected));
 			}

@@ -32,6 +32,8 @@
 #undef USE_ROUNDEDCORNER_SHADER
 #endif
 
+#undef USE_ROUNDEDCORNER_SHADER
+
 #if defined(USE_ROUNDEDCORNER_SHADER)
 #include <QtOpenGL/qglcustomshaderstage_p.h>
 #endif
@@ -1475,7 +1477,11 @@ void CardWindow::setVisibleDimensions(int width, int height)
 	m_paintPath = QPainterPath();
 
 	if ((m_adjustmentAngle != 90 && m_adjustmentAngle != -90) || this->type() == Window::Type_ModalChildWindowCard) {
-                m_paintPath.addRoundedRect(boundingRect(), 8, 6); //where you alter the loading rect stuff
+		//where you alter the loading rect stuff
+		if(Settings::LunaSettings()->tabletUi)
+                	m_paintPath.addRoundedRect(boundingRect(), 8 * Settings::LunaSettings()->layoutScale, 6 * Settings::LunaSettings()->layoutScale);
+		else
+                	m_paintPath.addRoundedRect(boundingRect(), 24 * Settings::LunaSettings()->layoutScale, 24 * Settings::LunaSettings()->layoutScale);
 	} else {
 		m_paintPath.addRoundedRect(QRectF(m_boundingRect.y(), m_boundingRect.x(), m_boundingRect.height(), m_boundingRect.width()), 25, 25);
 	}
@@ -1657,14 +1663,14 @@ bool CardWindow::touchEvent(QTouchEvent* event)
 void CardWindow::setPosition(const CardWindow::Position& pos)
 {
 	m_position = pos;
-        setTransform(m_position.toTransform());
+    setTransform(m_position.toTransform());
 #if defined(USE_ROUNDEDCORNER_SHADER)
-        if (m_roundedCornerShaderStage) {
-		m_roundedCornerShaderStage->setScale(pos.trans.z());
-	}
-        if(m_loadingAnim) {
-                m_loadingAnim->setScale(pos.trans.z());
-        }
+    if (m_roundedCornerShaderStage) {
+        m_roundedCornerShaderStage->setScale(pos.trans.z());
+    }
+    if(m_loadingAnim) {
+         m_loadingAnim->setScale(pos.trans.z());
+    }
 #endif
 }
 

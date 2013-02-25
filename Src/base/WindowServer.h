@@ -185,6 +185,7 @@ public:
 
 	bool takeScreenShot(const char* path);
 	virtual QPixmap* takeScreenShot();
+	bool saveScreenShot();
 
     OrientationEvent::Orientation getOrientation() const { return m_orientation; }
     OrientationEvent::Orientation getUiOrientation() const  { return m_currentUiOrientation; }
@@ -339,6 +340,7 @@ private Q_SLOTS:
 
 private:
 
+	bool canShowReticle(const QPoint& pos);
 	void showReticle(const QPoint& pos);
 	void gestureEvent(QGestureEvent* event);
 	void paintBootupScreen();
@@ -355,7 +357,10 @@ private:
 	VariantAnimation<WindowServer>* m_rotationAnim;
 	QTimer m_resizePendingTimer;
     QGraphicsItem* m_cachedFocusedItem;
-
+    
+    	bool m_powerKeyDown;
+    	bool m_eatPowerUpKey;
+    	
 	QTimer m_unaliasPaintEvent;
 	QTime m_timeSinceLastPaint;
 	QPixmap m_bootupScreen;

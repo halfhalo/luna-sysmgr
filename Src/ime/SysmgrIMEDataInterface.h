@@ -25,6 +25,11 @@
 #include "IMEDataInterface.h"
 #include "InputMethod.h"
 #include <qnamespace.h>
+#include <QString>
+#include <string>
+#include <glib.h>
+
+class VirtualKeyboardPreferences;
 
 class SysmgrIMEModel : public IMEDataInterface
 {
@@ -54,7 +59,44 @@ public:
 
 	virtual void keyDownAudioFeedback(Qt::Key key);
 
+    virtual void applyInitSettings(VirtualKeyboard *ime);
+    virtual void activateCombo();
+    virtual void selectKeyboardCombo(int index);
+    virtual void selectLayoutCombo(const char * layoutName);
+    virtual void selectNextKeyboardCombo();
+    virtual void createDefaultKeyboards();
+    virtual void clearDefaultDeyboards();
+    virtual void toggleTapSounds();
+    virtual bool getTapSounds() const;
+    virtual int  getKeyboardComboCount() const;
+    virtual bool getSpaces2period() const;
+    virtual void selectKeyboardSize(int size);
+    virtual const char *getLanguageFromKeyboardCombo(int index);
+    virtual const char* getLayoutFromKeyboardCombo(int index);
+
 	void	setInputMethod(InputMethod * inputMethod);
+
+    virtual QVariant getLunaSystemSetting(const QString &key);
+
+    virtual QString getLocalizedString(const std::string &str);
+
+    virtual std::string getLocale();
+
+    virtual void createRemoveBannerMessage(const std::string &appId,
+                                           const std::string&msgId);
+
+    virtual std::string createAddBannerMessage(const std::string &appId,
+                                               const std::string &msg,
+                                               const std::string &launchParams,
+                                               const std::string &icon,
+                                               const std::string &soundClass,
+                                               const std::string &soundFile,
+                                               int duration,
+                                               bool doNotSuppress);
+
+    virtual VirtualKeyboardPreferences &virtualKeyboardPreferences();
+
+    virtual GMainLoop *getMainLoop();
 
 private:
 	InputMethod *	m_inputMethod;

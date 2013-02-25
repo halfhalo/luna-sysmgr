@@ -32,6 +32,8 @@
 
 #include "safefileops.h"
 
+#include "Settings.h"
+
 #include <QDebug>
 
 namespace DimensionsSystemInterface
@@ -396,7 +398,8 @@ IconBase * AppMonitor::createAppIcon(const QString& mainIconFile,const QString& 
 {
 	//try and load its main icon
 	qDebug() << __FUNCTION__ << ": entry: mainIconFile = " << mainIconFile << " , iconLabel = " << iconLabel;
-	IconBase * pMainIcon = IconHeap::makeIconConstrainedStandardFrameAndDecorators(mainIconFile,QSize(64,64));
+	int iconSize = 64 * Settings::LunaSettings()->layoutScale;
+	IconBase * pMainIcon = IconHeap::makeIconConstrainedStandardFrameAndDecorators(mainIconFile,QSize(iconSize, iconSize), false);
 	if (!pMainIcon)
 	{
 		//bail'amos!
@@ -886,7 +889,8 @@ void AppMonitor::slotLaunchPointUpdated(const LaunchPoint* p_launchpoint,QBitArr
 
 			//TODO: PMO-MANAGE: if there was a old install status decorator pmo...
 			QString newIconFilename = StringTranslator::inputString(p_launchpoint->iconPath());
-			pNewPmo = PixmapObjectLoader::instance()->quickLoad(newIconFilename);
+			int iconSize = 64 * Settings::LunaSettings()->layoutScale;
+			pNewPmo = PixmapObjectLoader::instance()->quickLoad(newIconFilename,QSize(iconSize,iconSize),false);
 			if (pNewPmo)
 			{
 				qDebug() << __FUNCTION__ << ": Update on appId:[" << appId << "] , launchpointId:[" << launchpointId << "] -- attempting to set new icon (loaded from: " << newIconFilename << ")";
@@ -948,7 +952,8 @@ void AppMonitor::slotLaunchPointUpdated(const LaunchPoint* p_launchpoint,QBitArr
 			//The install status did not update the icon so I am ok to do it here
 			//load the new pixmap
 			QString newIconFilename = StringTranslator::inputString(p_launchpoint->iconPath());
-			PixmapObject * pNewIconPixmap = PixmapObjectLoader::instance()->quickLoad(newIconFilename);
+			int iconSize = 64 * Settings::LunaSettings()->layoutScale;
+			PixmapObject * pNewIconPixmap = PixmapObjectLoader::instance()->quickLoad(newIconFilename, QSize(iconSize, iconSize), false);
 			if (pNewIconPixmap)
 			{
 				pIcon->slotUpdateIconPic(pNewPmo,true,pOldPmo);

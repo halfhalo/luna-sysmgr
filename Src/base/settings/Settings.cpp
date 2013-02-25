@@ -23,6 +23,7 @@
 
 #include "Settings.h"
 
+#include <QHash>
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
@@ -37,6 +38,7 @@
 
 static const char* kSettingsFile = "/etc/palm/luna.conf";
 static const char* kSettingsFilePlatform = "/etc/palm/luna-platform.conf";
+static QHash<QString, QVariant> *allSettings = 0;
 
 #if 0
 
@@ -184,7 +186,6 @@ Settings::Settings()
 	, dockModeUserPositions("/var/palm/user-exhibition-apps.json")
 	, dockModeMenuHeight (400)
 	, virtualKeyboardEnabled(false)
-	, showNotificationsAtTop(false)
 	, virtualCoreNaviEnabled(false)
 	, virtualCoreNaviHeight(0)
 	, uiType(UI_LUNA)
@@ -200,6 +201,10 @@ Settings::Settings()
 	, fontStatusBar("Prelude")
 	, displayUiRotates(false)
 	, tabletUi(false)
+	, dpi(316)
+	, pixmapFactor(4.0)
+	, layoutScale(1.0)
+	, pixmapScale(1.0)
 	, homeButtonOrientationAngle(0)
 	, positiveSpaceTopPadding(24)
 	, positiveSpaceBottomPadding(24)
@@ -239,8 +244,9 @@ Settings::Settings()
 	, logFileName("/var/log/lunasysmgr.log")
     , cardDimmPercentage(0.8f)
     , schemaValidationOption(0)
+    , allowAllAppsInLowMemory(false)
 {
-
+    allSettings = new QHash<QString, QVariant>();
 	load(kSettingsFile);
 	load(kSettingsFilePlatform);
 
@@ -250,6 +256,7 @@ Settings::Settings()
 
 Settings::~Settings()
 {
+    delete allSettings;
 }
 
 #define KEY_STRING(cat,name,var) \
@@ -257,7 +264,7 @@ Settings::~Settings()
 	gchar* _vs;\
 	GError* _error = 0;\
 	_vs=g_key_file_get_string(keyfile,cat,name,&_error);\
-	if( !_error && _vs ) { var=(const char*)_vs; g_free(_vs); }\
+	if( !_error && _vs ) { var=(const char*)_vs; g_free(_vs); allSettings->insert(name, QString::fromStdString(var)); }\
 	else g_error_free(_error); \
 }
 
@@ -266,7 +273,7 @@ Settings::~Settings()
 	gchar* _vs;\
 	GError* _error = 0;\
 	_vs=g_key_file_get_string(keyfile,cat,name,&_error);\
-	if( !_error && _vs ) { var=::MemStringToBytes((const char*)_vs); g_free(_vs); }\
+	if( !_error && _vs ) { var=::MemStringToBytes((const char*)_vs); g_free(_vs); allSettings->insert(name, QString::fromStdString(var)); }\
 	else g_error_free(_error); \
 }
 
@@ -275,7 +282,7 @@ Settings::~Settings()
 	gboolean _vb;\
 	GError* _error = 0;\
 	_vb=g_key_file_get_boolean(keyfile,cat,name,&_error);\
-	if( !_error ) { var=_vb; }\
+	if( !_error ) { var=_vb; allSettings->insert(name, var); }\
 	else g_error_free(_error); \
 }
 
@@ -284,7 +291,7 @@ Settings::~Settings()
 	int _v;\
 	GError* _error = 0;\
 	_v=g_key_file_get_integer(keyfile,cat,name,&_error);\
-	if( !_error ) { var=_v; }\
+	if( !_error ) { var=_v; allSettings->insert(name, var); }\
 	else g_error_free(_error); \
 }
 
@@ -293,7 +300,7 @@ Settings::~Settings()
 	double _v;\
 	GError* _error = 0;\
 	_v=g_key_file_get_double(keyfile,cat,name,&_error);\
-	if( !_error ) { var=_v; }\
+	if( !_error ) { var=_v; allSettings->insert(name, var); }\
 	else g_error_free(_error); \
 }
 
@@ -378,7 +385,6 @@ void Settings::load(const char* settingsFile)
 	KEY_BOOLEAN("General", "ShowReticle", showReticle);
 
 	KEY_INTEGER("General", "NotificationSoundDuration", notificationSoundDuration);
-	KEY_BOOLEAN("General", "ShowNotificationsAtTop", showNotificationsAtTop);
 
 	KEY_INTEGER( "CoreNavi", "ThrobberBrightnessInLight", ledPulseMaxBrightness);
 	KEY_INTEGER( "CoreNavi", "ThrobberBrightnessInDark", ledPulseDarkBrightness);
@@ -397,6 +403,7 @@ void Settings::load(const char* settingsFile)
 	KEY_INTEGER( "Display", "LockScreenTimeoutMs", lockScreenTimeout);
 
 	KEY_INTEGER( "Memory", "CardLimit", cardLimit );
+    KEY_BOOLEAN( "Memory", "AllowAllAppsInLowMemory", allowAllAppsInLowMemory);
 	KEY_INTEGER( "General","DisplayWidth",displayWidth);
 	KEY_INTEGER( "General","DisplayHeight",displayHeight);
 	KEY_INTEGER( "General","DisplayNumBuffers", displayNumBuffers);
@@ -486,6 +493,8 @@ void Settings::load(const char* settingsFile)
 
 	KEY_BOOLEAN("UI", "DisplayUiRotates", displayUiRotates);
 	KEY_BOOLEAN("UI", "TabletUi", tabletUi);
+	KEY_INTEGER("UI", "DPI", dpi); //The device's hardware DPI
+	KEY_DOUBLE("UI", "PixmapFactor", pixmapFactor); //How large UI pixmaps are relative to their original size
 	KEY_INTEGER("UI", "HomeButtonOrientationAngle", homeButtonOrientationAngle);
 	KEY_INTEGER("UI", "PositiveSpaceTopPadding", positiveSpaceTopPadding);
 	KEY_INTEGER("UI", "PositiveSpaceBottomPadding", positiveSpaceBottomPadding);
@@ -495,7 +504,6 @@ void Settings::load(const char* settingsFile)
 	KEY_DOUBLE("UI", "GhostCardFinalRatio", ghostCardFinalRatio);
 	KEY_INTEGER("UI", "CardGroupRotFactor", cardGroupRotFactor);
 	KEY_INTEGER("UI", "GapBetweenCardGroups", gapBetweenCardGroups);
-	KEY_INTEGER("UI", "OverlayNotificationsHeight", overlayNotificationsHeight);
 	KEY_INTEGER("UI", "SplashIconSize", splashIconSize);
 	KEY_BOOLEAN("UI", "EnableSplashBackgrounds", enableSplashBackgrounds);
 	KEY_BOOLEAN("UI", "AtlasEnabled", atlasEnabled);
@@ -601,20 +609,21 @@ void Settings::load(const char* settingsFile)
 	}
 
 	// apps to allow under low memory conditions
-	gchar** appsToAllowInLowMemoryStr = g_key_file_get_string_list(keyfile, "Memory",
-																   "AppsToAllowInLowMemory", NULL, NULL);
-	if (appsToAllowInLowMemoryStr) {
+    if(!allowAllAppsInLowMemory) {
+        gchar** appsToAllowInLowMemoryStr = g_key_file_get_string_list(keyfile, "Memory",
+                                                                       "AppsToAllowInLowMemory", NULL, NULL);
+        if (appsToAllowInLowMemoryStr) {
+            int index = 0;
+            appsToAllowInLowMemory.clear();
+            while (appsToAllowInLowMemoryStr[index]) {
+                appsToAllowInLowMemory.insert(appsToAllowInLowMemoryStr[index]);
+                g_message("App to allow in Low memory: %s", appsToAllowInLowMemoryStr[index]);
+                ++index;
+            }
 
-		int index = 0;
-		appsToAllowInLowMemory.clear();
-		while (appsToAllowInLowMemoryStr[index]) {
-			appsToAllowInLowMemory.insert(appsToAllowInLowMemoryStr[index]);
-			g_message("App to allow in Low memory: %s", appsToAllowInLowMemoryStr[index]);
-			++index;
-		}
-
-		g_strfreev(appsToAllowInLowMemoryStr);
-	}
+            g_strfreev(appsToAllowInLowMemoryStr);
+        }
+    }
 
 	// apps with accelerated compositing disabled
 	gchar** appsToDisableAccelCompositingStr = g_key_file_get_string_list(keyfile, "AccelCompositingDisabled",
@@ -685,8 +694,15 @@ void Settings::postLoad()
 
 	// packageInstallBase has to be == to appInstallBase for now (at least in version=blowfish timeframe)
 	packageInstallBase = appInstallBase;
-
-	// Piranha flags
+	
+	layoutScale = dpi / 132;
+	pixmapScale = layoutScale / pixmapFactor;
+	
+	positiveSpaceTopPadding *= layoutScale;
+	positiveSpaceBottomPadding *= layoutScale;
+	statusBarTitleMaxWidth *= layoutScale;
+	gapBetweenCardGroups *= layoutScale;
+	splashIconSize *= layoutScale;
 }
 
 // Expands "1MB" --> 1048576, "2k" --> 2048, etc.
@@ -730,4 +746,9 @@ void Settings::createNeededFolders()
 	g_mkdir_with_parents((packageInstallBase+std::string("/")+packageInstallRelative).c_str(),0755);
 	g_mkdir_with_parents("/var/usr/palm",0755);
 	g_mkdir_with_parents(lunaScreenCapturesPath.c_str(),0755);
+}
+
+QVariant Settings::getSetting(const QString &key) const
+{
+    return allSettings->value(key);
 }
