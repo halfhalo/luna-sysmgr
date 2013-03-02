@@ -471,19 +471,14 @@ WindowServer::WindowServer()
 	setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
 	scene->setItemIndexMethod(QGraphicsScene::NoIndex);
 
+
 	viewportWidget->grabGesture(Qt::TapGesture);
-	viewportWidget->grabGesture(Qt::PinchGesture);
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 	viewportWidget->grabGesture(Qt::TapAndHoldGesture);
+	viewportWidget->grabGesture(Qt::PinchGesture);
 	viewportWidget->grabGesture((Qt::GestureType) SysMgrGestureFlick);
 	viewportWidget->grabGesture((Qt::GestureType) SysMgrGestureSingleClick);
 	viewportWidget->grabGesture((Qt::GestureType) SysMgrGestureScreenEdgeFlick);
-#else
-    viewportWidget->grabGesture(WebosTapAndHoldGesture::gestureType());
-    viewportWidget->grabGesture(FlickGesture::gestureType());
-    viewportWidget->grabGesture(SingleClickGesture::gestureType());
-    viewportWidget->grabGesture(ScreenEdgeFlickGesture::gestureType());
-#endif
+   
 	m_uiRootItem.setBoundingRect(QRectF(-SystemUiController::instance()->currentUiWidth()/2, -SystemUiController::instance()->currentUiHeight()/2,
 						         SystemUiController::instance()->currentUiWidth(), SystemUiController::instance()->currentUiHeight()));
 
