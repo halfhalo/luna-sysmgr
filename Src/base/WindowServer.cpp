@@ -92,6 +92,7 @@
 #include "WebosTapAndHoldGestureRecognizer.h"
 #include "WebosTapGestureRecognizer.h"
 #include "ScreenEdgeFlickGesture.h"
+#include "FlickGesture.h"
 #include "FlickGestureRecognizer.h"
 #include "QtUtils.h"
 
