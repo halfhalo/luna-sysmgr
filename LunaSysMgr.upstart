@@ -27,7 +27,7 @@ script
         export LD_PRELOAD="/usr/lib/libptmalloc3.so"
         export HOME=/var/home/root
     else
-        export LD_PRELOAD="/usr/lib/libptmalloc3.so /usr/lib/libmemcpy.so"
+        export LD_PRELOAD=" /usr/lib/libmemcpy.so"
     fi
 
 	#check for MFTboot flag and attempt to launch MFT if present

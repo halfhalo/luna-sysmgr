@@ -442,6 +442,8 @@ WindowServer::WindowServer()
     SingleClickGesture::setGestureType(customType);
     customType=QGestureRecognizer::registerRecognizer(new FlickGestureRecognizer);
     FlickGesture::setGestureType(customType);
+    customType=QGestureRecognizer::registerRecognizer(new ScreenEdgeFlickGestureRecognizer);
+    ScreenEdgeFlickGesture::setGestureType(customType);
     
 
     customType = QGestureRecognizer::registerRecognizer(new WebosTapAndHoldGestureRecognizer);
